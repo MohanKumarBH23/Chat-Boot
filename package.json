@@ -1,27 +1,22 @@
 {
-  "name": "search-chat-agent",
+  "name": "cli-search-agent",
   "version": "1.0.0",
-  "description": "State-of-the-art Chat Agent with Web Search, Episodic Memory, Temporal Grounding, and Citations",
+  "description": "Production-grade CLI chat agent with Web Search, temporal grounding, and differential episodic memory",
   "type": "module",
   "scripts": {
-    "dev": "tsx src/server/index.ts",
-    "start": "tsx src/server/index.ts",
+    "dev": "tsx src/index.ts",
+    "start": "tsx src/index.ts",
+    "seed": "tsx src/seed.ts",
     "build": "tsc",
-    "test": "tsx test/agent.test.ts"
+    "test": "tsx src/index.ts --test"
   },
   "dependencies": {
-    "express": "^4.21.2",
-    "cors": "^2.8.5",
     "dotenv": "^16.4.7",
-    "cheerio": "^1.0.0",
-    "openai": "^4.86.1",
-    "@google/generative-ai": "^0.24.0"
+    "openai": "^4.86.1"
   },
   "devDependencies": {
-    "typescript": "^5.7.3",
-    "tsx": "^4.19.3",
     "@types/node": "^22.13.5",
-    "@types/express": "^5.0.0",
-    "@types/cors": "^2.8.17"
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
   }
 }

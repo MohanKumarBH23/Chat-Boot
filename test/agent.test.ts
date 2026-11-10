@@ -137,6 +137,50 @@ async function runTests() {
     }
   });
 
+  await test('Streams complete response for 3 November evaluation prompt', async () => {
+    const conv = store.createConversation('Nov 3 Check Chat');
+    const prompt = 'What did I ask you on 3 November? Is your answer still correct today?';
+
+    const events: AgentStreamEvent[] = [];
+    for await (const event of agent.chatStream(conv.id, prompt)) {
+      events.push(event);
+    }
+
+    const planEvent = events.find((e) => e.type === 'plan');
+    const completeEvent = events.find((e) => e.type === 'complete');
+
+    assert(planEvent, 'Must emit plan event');
+    assert(completeEvent, 'Must emit complete event');
+
+    if (completeEvent && completeEvent.type === 'complete') {
+      const msg = completeEvent.message;
+      assert(msg.content.length > 0, 'Must produce response');
+      assert(msg.sources && msg.sources.length > 0, 'Must have grounding sources');
+    }
+  });
+
+  await test('Streams complete response for Last Tuesday Postgres evaluation prompt', async () => {
+    const conv = store.createConversation('Postgres Check Chat');
+    const prompt = 'Last Tuesday I asked you about Postgres hosting. Has any pricing changed since then?';
+
+    const events: AgentStreamEvent[] = [];
+    for await (const event of agent.chatStream(conv.id, prompt)) {
+      events.push(event);
+    }
+
+    const planEvent = events.find((e) => e.type === 'plan');
+    const completeEvent = events.find((e) => e.type === 'complete');
+
+    assert(planEvent, 'Must emit plan event');
+    assert(completeEvent, 'Must emit complete event');
+
+    if (completeEvent && completeEvent.type === 'complete') {
+      const msg = completeEvent.message;
+      assert(msg.content.length > 0, 'Must produce response');
+      assert(msg.sources && msg.sources.length > 0, 'Must have grounding sources');
+    }
+  });
+
   console.log(`\n========================================`);
   console.log(`Summary: ${passed} passed, ${failed} failed`);
   console.log(`========================================\n`);

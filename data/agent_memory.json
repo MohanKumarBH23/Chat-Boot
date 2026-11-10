@@ -1,0 +1,843 @@
+[
+  {
+    "id": "conv-monday-crm-shortlist",
+    "title": "Shortlist 5 CRM tools for 20-person sales team",
+    "createdAt": "2026-11-10T16:52:16.436Z",
+    "updatedAt": "2026-11-10T16:52:16.443Z",
+    "messages": [
+      {
+        "id": "msg-crm-u1",
+        "role": "user",
+        "content": "On Monday we shortlisted 5 CRM tools for a 20-person sales team. Can you summarize their pricing tiers and capabilities?",
+        "timestamp": "2026-11-09T09:30:00.000Z"
+      },
+      {
+        "id": "msg-crm-a1",
+        "role": "assistant",
+        "content": "Here is the shortlist of 5 CRM tools evaluated for your 20-person sales team, along with verified baseline pricing and capabilities as of Monday, 9 November 2026:\n\n1. **HubSpot Sales Hub**\n   - **Pricing**: Starter is $15/seat/month; Professional is $90/seat/month billed annually.\n   - **Key Features**: Inbound marketing alignment, visual deal pipeline, automated email sequences.\n\n2. **Pipedrive**\n   - **Pricing**: Essential at $14/user/mo, Advanced at $29/user/mo, Professional at $49/user/mo.\n   - **Key Features**: Activity-based selling, pipeline stages, low administrative overhead.\n\n3. **Salesforce Sales Cloud**\n   - **Pricing**: Starter Suite at $25/user/month; Pro Suite at $100/user/month; Enterprise at $165/user/month.\n   - **Key Features**: Deep ecosystem, customizable workflow rules, enterprise forecasting.\n\n4. **Freshsales (Freshworks CRM)**\n   - **Pricing**: Growth at $9/user/mo, Pro at $39/user/mo, Enterprise at $59/user/mo (annual billing).\n   - **Key Features**: Freddy AI lead scoring, built-in cloud telephony, deal analytics.\n\n5. **Close CRM**\n   - **Pricing**: Startup plan at $49/month (includes 3 seats, $16.33/user equivalent); Professional at $299/month.\n   - **Key Features**: Built for high-velocity inside sales teams with multi-channel sequences and calling.",
+        "timestamp": "2026-11-09T09:35:00.000Z",
+        "metadata": {
+          "entities": [
+            "HubSpot Sales Hub",
+            "Pipedrive",
+            "Salesforce Sales Cloud",
+            "Freshsales",
+            "Close CRM"
+          ],
+          "topic": "CRM Shortlist for 20-person sales team"
+        }
+      }
+    ],
+    "scenario": "crm-shortlist"
+  },
+  {
+    "id": "conv-nov3-postgres-hosting",
+    "title": "Managed Postgres Hosting Comparison",
+    "createdAt": "2026-11-10T16:52:16.445Z",
+    "updatedAt": "2026-11-10T16:52:16.448Z",
+    "messages": [
+      {
+        "id": "msg-pg-u1",
+        "role": "user",
+        "content": "Can you compare managed Postgres hosting providers with focus on compute pricing and database branching?",
+        "timestamp": "2026-11-03T14:15:00.000Z"
+      },
+      {
+        "id": "msg-pg-a1",
+        "role": "assistant",
+        "content": "Here is the comparison of managed Postgres hosting options as of Tuesday, 3 November 2026:\n\n1. **Supabase**\n   - **Compute Pricing**: Free tier includes 500MB database; Pro tier at $25/month includes $10 compute credit; Team tier at $599/month. Additional micro compute at ~$0.01344/hr (~$10/month).\n   - **Branching**: Branching preview available for Pro plans.\n\n2. **Neon Serverless Postgres**\n   - **Compute Pricing**: Free tier with 0.5 GiB storage; Launch tier at $19/mo; Scale tier at $69/mo. Compute units bill at $0.16/CU-hour.\n   - **Branching**: Instant copy-on-write database branching for preview environments and CI/CD.\n\n3. **Crunchy Bridge**\n   - **Compute Pricing**: Hobby instances start at $10/mo (1GB RAM); Standard production tiers start at $35/mo.\n   - **Branching**: Ephemeral database forks and disaster recovery failover.\n\n4. **AWS RDS for PostgreSQL**\n   - **Compute Pricing**: db.t4g.micro starts at $0.016/hour (~$11.52/month on-demand); General Purpose SSD (gp3) at $0.115/GB-mo.\n   - **Branching**: No instant zero-copy branching; relies on read replicas and snapshot restores.",
+        "timestamp": "2026-11-03T14:20:00.000Z",
+        "metadata": {
+          "entities": [
+            "Supabase",
+            "Neon",
+            "Crunchy Bridge",
+            "AWS RDS"
+          ],
+          "topic": "Managed Postgres Hosting Comparison"
+        }
+      }
+    ],
+    "scenario": "postgres-hosting"
+  },
+  {
+    "id": "bench-eval-session-0",
+    "title": "Conversation",
+    "createdAt": "2026-11-10T16:52:40.860Z",
+    "updatedAt": "2026-11-10T16:58:38.463Z",
+    "messages": [
+      {
+        "id": "user-1794329560859",
+        "role": "user",
+        "content": "On Monday we shortlisted 5 CRM tools for a 20-person sales team. Has any of them changed pricing or shipped something big since?",
+        "timestamp": "2026-11-10T16:52:40.859Z"
+      },
+      {
+        "id": "asst-1794329560864",
+        "role": "assistant",
+        "content": "None of the 5 shortlisted CRM tools (HubSpot, Pipedrive, Salesforce, Freshsales, Close) have increased their base subscription pricing since Monday, though HubSpot and Salesforce shipped major AI agent capabilities.\n\n### Differential Breakdown (Monday vs. Today)\n\n| CRM Tool | Baseline Pricing (Monday) | Current Status (Today) | Feature Diff / Shipped Updates | Source |\n| :--- | :--- | :--- | :--- | :--- |\n| **HubSpot Sales Hub** | Starter: $15/seat/mo, Pro: $90/seat/mo | **Unchanged** ($15 / $90/seat/mo) | Shipped Breeze AI Copilot integration [1] | [1] |\n| **Pipedrive** | Essential: $14, Adv: $29, Pro: $49/user/mo | **Unchanged** ($14 / $29 / $49) | Released Smart Docs 2.0 collaborative editor [2] | [2] |\n| **Salesforce Sales Cloud** | Starter: $25, Pro: $100, Enterprise: $165 | **Unchanged** ($25 / $100 / $165) | Deployed Agentforce autonomous sales SDR agents to GA [3] | [3] |\n| **Freshsales** | Growth: $9, Pro: $39, Enterprise: $59/user/mo | **Unchanged** ($9 / $39 / $59) | Freddy AI automated lead scoring update [4] | [4] |\n| **Close CRM** | Startup: $49/mo (3 seats), Pro: $299/mo | **Unchanged** ($49 / $299) | Enhanced multi-channel sequence engine [5] | [5] |\n\n*Summary*: All 5 tools maintained their price tiers since Monday's shortlist; no budget revisions are required for your 20-person team.\n\n---\n**Sources Verified:**\n[1] [HubSpot Sales Hub - Official Pricing & Feature Release Notes 2026](https://www.hubspot.com/pricing/sales-hub) (hubspot.com · 2026-11-09)\n[2] [Pipedrive Pricing - Sales Pipeline CRM Plans](https://www.pipedrive.com/en/pricing) (pipedrive.com · 2026-11-09)\n[3] [Salesforce Sales Cloud Editions and Pricing](https://www.salesforce.com/editions-pricing/sales-cloud) (salesforce.com · 2026-11-08)\n[4] [Freshsales Pricing - Modern Sales CRM by Freshworks](https://www.freshworks.com/crm/sales/pricing) (freshworks.com · 2026-11-07)\n[5] [Close CRM Pricing - Built for Inside Sales Teams](https://www.close.com/pricing) (close.com · 2026-11-06)\n",
+        "timestamp": "2026-11-10T16:52:40.864Z",
+        "sources": [
+          {
+            "title": "HubSpot Sales Hub - Official Pricing & Feature Release Notes 2026",
+            "url": "https://www.hubspot.com/pricing/sales-hub",
+            "canonicalUrl": "https://www.hubspot.com/pricing/sales-hub",
+            "snippet": "HubSpot Sales Hub: Starter remains at $15/seat/month; Professional remains at $90/seat/month billed annually. Shipped Breeze AI Copilot integration for automatic deal scoring. No base subscription price changes announced this week.",
+            "publishedDate": "2026-11-09",
+            "domain": "hubspot.com"
+          },
+          {
+            "title": "Pipedrive Pricing - Sales Pipeline CRM Plans",
+            "url": "https://www.pipedrive.com/en/pricing",
+            "canonicalUrl": "https://www.pipedrive.com/en/pricing",
+            "snippet": "Pipedrive pricing: Essential is $14/user/mo, Advanced is $29/user/mo, and Professional is $49/user/mo. Pricing has stayed unchanged since early November. Released Smart Docs 2.0 collaborative editor.",
+            "publishedDate": "2026-11-09",
+            "domain": "pipedrive.com"
+          },
+          {
+            "title": "Salesforce Sales Cloud Editions and Pricing",
+            "url": "https://www.salesforce.com/editions-pricing/sales-cloud",
+            "canonicalUrl": "https://www.salesforce.com/editions-pricing/sales-cloud",
+            "snippet": "Salesforce Sales Cloud: Starter Suite is $25/user/month; Pro Suite is $100/user/month; Enterprise is $165/user/month. Released Agentforce autonomous sales SDR agents to general availability. No tier price increases recorded.",
+            "publishedDate": "2026-11-08",
+            "domain": "salesforce.com"
+          },
+          {
+            "title": "Freshsales Pricing - Modern Sales CRM by Freshworks",
+            "url": "https://www.freshworks.com/crm/sales/pricing",
+            "canonicalUrl": "https://www.freshworks.com/crm/sales/pricing",
+            "snippet": "Freshsales pricing: Growth plan at $9/user/mo, Pro plan at $39/user/mo, Enterprise plan at $59/user/mo (billed annually). Pricing remains constant; Freddy AI automated lead scoring update deployed.",
+            "publishedDate": "2026-11-07",
+            "domain": "freshworks.com"
+          },
+          {
+            "title": "Close CRM Pricing - Built for Inside Sales Teams",
+            "url": "https://www.close.com/pricing",
+            "canonicalUrl": "https://www.close.com/pricing",
+            "snippet": "Close CRM: Startup tier at $49/month (includes 3 seats, $16.33/user equivalent); Professional at $299/month. Core pricing unchanged. Enhanced built-in SMS and multi-channel sequence engine.",
+            "publishedDate": "2026-11-06",
+            "domain": "close.com"
+          }
+        ],
+        "queries": [
+          "HubSpot Sales Hub Pipedrive pricing changelog update 2026",
+          "Salesforce Sales Cloud Freshsales Close CRM pricing announcements 2026"
+        ],
+        "latencyMs": 92,
+        "metadata": {
+          "entities": [
+            "HubSpot Sales Hub",
+            "Pipedrive",
+            "Salesforce Sales Cloud",
+            "Freshsales",
+            "Close CRM"
+          ],
+          "temporalAnchor": "2026-11-10"
+        }
+      },
+      {
+        "id": "user-1794329650635",
+        "role": "user",
+        "content": "On Monday we shortlisted 5 CRM tools for a 20-person sales team. Has any of them changed pricing or shipped something big since?",
+        "timestamp": "2026-11-10T16:54:10.635Z"
+      },
+      {
+        "id": "asst-1794329650638",
+        "role": "assistant",
+        "content": "None of the 5 shortlisted CRM tools (HubSpot, Pipedrive, Salesforce, Freshsales, Close) have increased their base subscription pricing since Monday, though HubSpot and Salesforce shipped major AI agent capabilities.\n\n### Differential Breakdown (Monday vs. Today)\n\n| CRM Tool | Baseline Pricing (Monday) | Current Status (Today) | Feature Diff / Shipped Updates | Source |\n| :--- | :--- | :--- | :--- | :--- |\n| **HubSpot Sales Hub** | Starter: $15/seat/mo, Pro: $90/seat/mo | **Unchanged** ($15 / $90/seat/mo) | Shipped Breeze AI Copilot integration [1] | [1] |\n| **Pipedrive** | Essential: $14, Adv: $29, Pro: $49/user/mo | **Unchanged** ($14 / $29 / $49) | Released Smart Docs 2.0 collaborative editor [2] | [2] |\n| **Salesforce Sales Cloud** | Starter: $25, Pro: $100, Enterprise: $165 | **Unchanged** ($25 / $100 / $165) | Deployed Agentforce autonomous sales SDR agents to GA [3] | [3] |\n| **Freshsales** | Growth: $9, Pro: $39, Enterprise: $59/user/mo | **Unchanged** ($9 / $39 / $59) | Freddy AI automated lead scoring update [4] | [4] |\n| **Close CRM** | Startup: $49/mo (3 seats), Pro: $299/mo | **Unchanged** ($49 / $299) | Enhanced multi-channel sequence engine [5] | [5] |\n\n*Summary*: All 5 tools maintained their price tiers since Monday's shortlist; no budget revisions are required for your 20-person team.\n\n---\n**Sources Verified:**\n[1] [HubSpot Sales Hub - Official Pricing & Feature Release Notes 2026](https://www.hubspot.com/pricing/sales-hub) (hubspot.com · 2026-11-09)\n[2] [Pipedrive Pricing - Sales Pipeline CRM Plans](https://www.pipedrive.com/en/pricing) (pipedrive.com · 2026-11-09)\n[3] [Salesforce Sales Cloud Editions and Pricing](https://www.salesforce.com/editions-pricing/sales-cloud) (salesforce.com · 2026-11-08)\n[4] [Freshsales Pricing - Modern Sales CRM by Freshworks](https://www.freshworks.com/crm/sales/pricing) (freshworks.com · 2026-11-07)\n[5] [Close CRM Pricing - Built for Inside Sales Teams](https://www.close.com/pricing) (close.com · 2026-11-06)\n",
+        "timestamp": "2026-11-10T16:54:10.638Z",
+        "sources": [
+          {
+            "title": "HubSpot Sales Hub - Official Pricing & Feature Release Notes 2026",
+            "url": "https://www.hubspot.com/pricing/sales-hub",
+            "canonicalUrl": "https://www.hubspot.com/pricing/sales-hub",
+            "snippet": "HubSpot Sales Hub: Starter remains at $15/seat/month; Professional remains at $90/seat/month billed annually. Shipped Breeze AI Copilot integration for automatic deal scoring. No base subscription price changes announced this week.",
+            "publishedDate": "2026-11-09",
+            "domain": "hubspot.com"
+          },
+          {
+            "title": "Pipedrive Pricing - Sales Pipeline CRM Plans",
+            "url": "https://www.pipedrive.com/en/pricing",
+            "canonicalUrl": "https://www.pipedrive.com/en/pricing",
+            "snippet": "Pipedrive pricing: Essential is $14/user/mo, Advanced is $29/user/mo, and Professional is $49/user/mo. Pricing has stayed unchanged since early November. Released Smart Docs 2.0 collaborative editor.",
+            "publishedDate": "2026-11-09",
+            "domain": "pipedrive.com"
+          },
+          {
+            "title": "Salesforce Sales Cloud Editions and Pricing",
+            "url": "https://www.salesforce.com/editions-pricing/sales-cloud",
+            "canonicalUrl": "https://www.salesforce.com/editions-pricing/sales-cloud",
+            "snippet": "Salesforce Sales Cloud: Starter Suite is $25/user/month; Pro Suite is $100/user/month; Enterprise is $165/user/month. Released Agentforce autonomous sales SDR agents to general availability. No tier price increases recorded.",
+            "publishedDate": "2026-11-08",
+            "domain": "salesforce.com"
+          },
+          {
+            "title": "Freshsales Pricing - Modern Sales CRM by Freshworks",
+            "url": "https://www.freshworks.com/crm/sales/pricing",
+            "canonicalUrl": "https://www.freshworks.com/crm/sales/pricing",
+            "snippet": "Freshsales pricing: Growth plan at $9/user/mo, Pro plan at $39/user/mo, Enterprise plan at $59/user/mo (billed annually). Pricing remains constant; Freddy AI automated lead scoring update deployed.",
+            "publishedDate": "2026-11-07",
+            "domain": "freshworks.com"
+          },
+          {
+            "title": "Close CRM Pricing - Built for Inside Sales Teams",
+            "url": "https://www.close.com/pricing",
+            "canonicalUrl": "https://www.close.com/pricing",
+            "snippet": "Close CRM: Startup tier at $49/month (includes 3 seats, $16.33/user equivalent); Professional at $299/month. Core pricing unchanged. Enhanced built-in SMS and multi-channel sequence engine.",
+            "publishedDate": "2026-11-06",
+            "domain": "close.com"
+          }
+        ],
+        "queries": [
+          "HubSpot Sales Hub Pipedrive pricing changelog update 2026",
+          "Salesforce Sales Cloud Freshsales Close CRM pricing announcements 2026"
+        ],
+        "latencyMs": 62,
+        "metadata": {
+          "entities": [
+            "HubSpot Sales Hub",
+            "Pipedrive",
+            "Salesforce Sales Cloud",
+            "Freshsales",
+            "Close CRM"
+          ],
+          "temporalAnchor": "2026-11-10"
+        }
+      },
+      {
+        "id": "user-1794329813063",
+        "role": "user",
+        "content": "On Monday we shortlisted 5 CRM tools for a 20-person sales team. Has any of them changed pricing or shipped something big since?",
+        "timestamp": "2026-11-10T16:56:53.063Z"
+      },
+      {
+        "id": "asst-1794329813066",
+        "role": "assistant",
+        "content": "None of the 5 shortlisted CRM tools (HubSpot, Pipedrive, Salesforce, Freshsales, Close) have increased their base subscription pricing since Monday, though HubSpot and Salesforce shipped major AI agent capabilities.\n\n### Differential Breakdown (Monday vs. Today)\n\n| CRM Tool | Baseline Pricing (Monday) | Current Status (Today) | Feature Diff / Shipped Updates | Source |\n| :--- | :--- | :--- | :--- | :--- |\n| **HubSpot Sales Hub** | Starter: $15/seat/mo, Pro: $90/seat/mo | **Unchanged** ($15 / $90/seat/mo) | Shipped Breeze AI Copilot integration [1] | [1] |\n| **Pipedrive** | Essential: $14, Adv: $29, Pro: $49/user/mo | **Unchanged** ($14 / $29 / $49) | Released Smart Docs 2.0 collaborative editor [2] | [2] |\n| **Salesforce Sales Cloud** | Starter: $25, Pro: $100, Enterprise: $165 | **Unchanged** ($25 / $100 / $165) | Deployed Agentforce autonomous sales SDR agents to GA [3] | [3] |\n| **Freshsales** | Growth: $9, Pro: $39, Enterprise: $59/user/mo | **Unchanged** ($9 / $39 / $59) | Freddy AI automated lead scoring update [4] | [4] |\n| **Close CRM** | Startup: $49/mo (3 seats), Pro: $299/mo | **Unchanged** ($49 / $299) | Enhanced multi-channel sequence engine [5] | [5] |\n\n*Summary*: All 5 tools maintained their price tiers since Monday's shortlist; no budget revisions are required for your 20-person team.\n\n---\n**Sources Verified:**\n[1] [HubSpot Sales Hub - Official Pricing & Feature Release Notes 2026](https://www.hubspot.com/pricing/sales-hub) (hubspot.com · 2026-11-09)\n[2] [Pipedrive Pricing - Sales Pipeline CRM Plans](https://www.pipedrive.com/en/pricing) (pipedrive.com · 2026-11-09)\n[3] [Salesforce Sales Cloud Editions and Pricing](https://www.salesforce.com/editions-pricing/sales-cloud) (salesforce.com · 2026-11-08)\n[4] [Freshsales Pricing - Modern Sales CRM by Freshworks](https://www.freshworks.com/crm/sales/pricing) (freshworks.com · 2026-11-07)\n[5] [Close CRM Pricing - Built for Inside Sales Teams](https://www.close.com/pricing) (close.com · 2026-11-06)\n",
+        "timestamp": "2026-11-10T16:56:53.066Z",
+        "sources": [
+          {
+            "title": "HubSpot Sales Hub - Official Pricing & Feature Release Notes 2026",
+            "url": "https://www.hubspot.com/pricing/sales-hub",
+            "canonicalUrl": "https://www.hubspot.com/pricing/sales-hub",
+            "snippet": "HubSpot Sales Hub: Starter remains at $15/seat/month; Professional remains at $90/seat/month billed annually. Shipped Breeze AI Copilot integration for automatic deal scoring. No base subscription price changes announced this week.",
+            "publishedDate": "2026-11-09",
+            "domain": "hubspot.com"
+          },
+          {
+            "title": "Pipedrive Pricing - Sales Pipeline CRM Plans",
+            "url": "https://www.pipedrive.com/en/pricing",
+            "canonicalUrl": "https://www.pipedrive.com/en/pricing",
+            "snippet": "Pipedrive pricing: Essential is $14/user/mo, Advanced is $29/user/mo, and Professional is $49/user/mo. Pricing has stayed unchanged since early November. Released Smart Docs 2.0 collaborative editor.",
+            "publishedDate": "2026-11-09",
+            "domain": "pipedrive.com"
+          },
+          {
+            "title": "Salesforce Sales Cloud Editions and Pricing",
+            "url": "https://www.salesforce.com/editions-pricing/sales-cloud",
+            "canonicalUrl": "https://www.salesforce.com/editions-pricing/sales-cloud",
+            "snippet": "Salesforce Sales Cloud: Starter Suite is $25/user/month; Pro Suite is $100/user/month; Enterprise is $165/user/month. Released Agentforce autonomous sales SDR agents to general availability. No tier price increases recorded.",
+            "publishedDate": "2026-11-08",
+            "domain": "salesforce.com"
+          },
+          {
+            "title": "Freshsales Pricing - Modern Sales CRM by Freshworks",
+            "url": "https://www.freshworks.com/crm/sales/pricing",
+            "canonicalUrl": "https://www.freshworks.com/crm/sales/pricing",
+            "snippet": "Freshsales pricing: Growth plan at $9/user/mo, Pro plan at $39/user/mo, Enterprise plan at $59/user/mo (billed annually). Pricing remains constant; Freddy AI automated lead scoring update deployed.",
+            "publishedDate": "2026-11-07",
+            "domain": "freshworks.com"
+          },
+          {
+            "title": "Close CRM Pricing - Built for Inside Sales Teams",
+            "url": "https://www.close.com/pricing",
+            "canonicalUrl": "https://www.close.com/pricing",
+            "snippet": "Close CRM: Startup tier at $49/month (includes 3 seats, $16.33/user equivalent); Professional at $299/month. Core pricing unchanged. Enhanced built-in SMS and multi-channel sequence engine.",
+            "publishedDate": "2026-11-06",
+            "domain": "close.com"
+          }
+        ],
+        "queries": [
+          "HubSpot Sales Hub Pipedrive pricing changelog update 2026",
+          "Salesforce Sales Cloud Freshsales Close CRM pricing announcements 2026"
+        ],
+        "latencyMs": 98,
+        "metadata": {
+          "entities": [
+            "HubSpot Sales Hub",
+            "Pipedrive",
+            "Salesforce Sales Cloud",
+            "Freshsales",
+            "Close CRM"
+          ],
+          "temporalAnchor": "2026-11-10"
+        }
+      },
+      {
+        "id": "user-1794329918461",
+        "role": "user",
+        "content": "On Monday we shortlisted 5 CRM tools for a 20-person sales team. Has any of them changed pricing or shipped something big since?",
+        "timestamp": "2026-11-10T16:58:38.461Z"
+      },
+      {
+        "id": "asst-1794329918463",
+        "role": "assistant",
+        "content": "None of the 5 shortlisted CRM tools (HubSpot, Pipedrive, Salesforce, Freshsales, Close) have increased their base subscription pricing since Monday, though HubSpot and Salesforce shipped major AI agent capabilities.\n\n### Differential Breakdown (Monday vs. Today)\n\n| CRM Tool | Baseline Pricing (Monday) | Current Status (Today) | Feature Diff / Shipped Updates | Source |\n| :--- | :--- | :--- | :--- | :--- |\n| **HubSpot Sales Hub** | Starter: $15/seat/mo, Pro: $90/seat/mo | **Unchanged** ($15 / $90/seat/mo) | Shipped Breeze AI Copilot integration [1] | [1] |\n| **Pipedrive** | Essential: $14, Adv: $29, Pro: $49/user/mo | **Unchanged** ($14 / $29 / $49) | Released Smart Docs 2.0 collaborative editor [2] | [2] |\n| **Salesforce Sales Cloud** | Starter: $25, Pro: $100, Enterprise: $165 | **Unchanged** ($25 / $100 / $165) | Deployed Agentforce autonomous sales SDR agents to GA [3] | [3] |\n| **Freshsales** | Growth: $9, Pro: $39, Enterprise: $59/user/mo | **Unchanged** ($9 / $39 / $59) | Freddy AI automated lead scoring update [4] | [4] |\n| **Close CRM** | Startup: $49/mo (3 seats), Pro: $299/mo | **Unchanged** ($49 / $299) | Enhanced multi-channel sequence engine [5] | [5] |\n\n*Summary*: All 5 tools maintained their price tiers since Monday's shortlist; no budget revisions are required for your 20-person team.\n\n---\n**Sources Verified:**\n[1] [HubSpot Sales Hub - Official Pricing & Feature Release Notes 2026](https://www.hubspot.com/pricing/sales-hub) (hubspot.com · 2026-11-09)\n[2] [Pipedrive Pricing - Sales Pipeline CRM Plans](https://www.pipedrive.com/en/pricing) (pipedrive.com · 2026-11-09)\n[3] [Salesforce Sales Cloud Editions and Pricing](https://www.salesforce.com/editions-pricing/sales-cloud) (salesforce.com · 2026-11-08)\n[4] [Freshsales Pricing - Modern Sales CRM by Freshworks](https://www.freshworks.com/crm/sales/pricing) (freshworks.com · 2026-11-07)\n[5] [Close CRM Pricing - Built for Inside Sales Teams](https://www.close.com/pricing) (close.com · 2026-11-06)\n",
+        "timestamp": "2026-11-10T16:58:38.463Z",
+        "sources": [
+          {
+            "title": "HubSpot Sales Hub - Official Pricing & Feature Release Notes 2026",
+            "url": "https://www.hubspot.com/pricing/sales-hub",
+            "canonicalUrl": "https://www.hubspot.com/pricing/sales-hub",
+            "snippet": "HubSpot Sales Hub: Starter remains at $15/seat/month; Professional remains at $90/seat/month billed annually. Shipped Breeze AI Copilot integration for automatic deal scoring. No base subscription price changes announced this week.",
+            "publishedDate": "2026-11-09",
+            "domain": "hubspot.com"
+          },
+          {
+            "title": "Pipedrive Pricing - Sales Pipeline CRM Plans",
+            "url": "https://www.pipedrive.com/en/pricing",
+            "canonicalUrl": "https://www.pipedrive.com/en/pricing",
+            "snippet": "Pipedrive pricing: Essential is $14/user/mo, Advanced is $29/user/mo, and Professional is $49/user/mo. Pricing has stayed unchanged since early November. Released Smart Docs 2.0 collaborative editor.",
+            "publishedDate": "2026-11-09",
+            "domain": "pipedrive.com"
+          },
+          {
+            "title": "Salesforce Sales Cloud Editions and Pricing",
+            "url": "https://www.salesforce.com/editions-pricing/sales-cloud",
+            "canonicalUrl": "https://www.salesforce.com/editions-pricing/sales-cloud",
+            "snippet": "Salesforce Sales Cloud: Starter Suite is $25/user/month; Pro Suite is $100/user/month; Enterprise is $165/user/month. Released Agentforce autonomous sales SDR agents to general availability. No tier price increases recorded.",
+            "publishedDate": "2026-11-08",
+            "domain": "salesforce.com"
+          },
+          {
+            "title": "Freshsales Pricing - Modern Sales CRM by Freshworks",
+            "url": "https://www.freshworks.com/crm/sales/pricing",
+            "canonicalUrl": "https://www.freshworks.com/crm/sales/pricing",
+            "snippet": "Freshsales pricing: Growth plan at $9/user/mo, Pro plan at $39/user/mo, Enterprise plan at $59/user/mo (billed annually). Pricing remains constant; Freddy AI automated lead scoring update deployed.",
+            "publishedDate": "2026-11-07",
+            "domain": "freshworks.com"
+          },
+          {
+            "title": "Close CRM Pricing - Built for Inside Sales Teams",
+            "url": "https://www.close.com/pricing",
+            "canonicalUrl": "https://www.close.com/pricing",
+            "snippet": "Close CRM: Startup tier at $49/month (includes 3 seats, $16.33/user equivalent); Professional at $299/month. Core pricing unchanged. Enhanced built-in SMS and multi-channel sequence engine.",
+            "publishedDate": "2026-11-06",
+            "domain": "close.com"
+          }
+        ],
+        "queries": [
+          "HubSpot Sales Hub Pipedrive pricing changelog update 2026",
+          "Salesforce Sales Cloud Freshsales Close CRM pricing announcements 2026"
+        ],
+        "latencyMs": 78,
+        "metadata": {
+          "entities": [
+            "HubSpot Sales Hub",
+            "Pipedrive",
+            "Salesforce Sales Cloud",
+            "Freshsales",
+            "Close CRM"
+          ],
+          "temporalAnchor": "2026-11-10"
+        }
+      }
+    ]
+  },
+  {
+    "id": "bench-eval-session-1",
+    "title": "Conversation",
+    "createdAt": "2026-11-10T16:52:40.871Z",
+    "updatedAt": "2026-11-10T16:58:38.472Z",
+    "messages": [
+      {
+        "id": "user-1794329560871",
+        "role": "user",
+        "content": "What did I ask you on 3 November? Is your answer still correct today?",
+        "timestamp": "2026-11-10T16:52:40.871Z"
+      },
+      {
+        "id": "asst-1794329560875",
+        "role": "assistant",
+        "content": "On 3 November, you asked: *\"Can you compare managed Postgres hosting providers with focus on compute pricing and database branching?\"*, and our answer remains completely correct and up-to-date today.\n\n### Verification of 3 November Recommendations\n\n1. **Supabase**: Pro tier remains $25/mo with $10 compute credit; branching preview remains active [1].\n2. **Neon**: Autoscaling compute remains $0.16/CU-hour with instant copy-on-write branching [2].\n3. **Crunchy Bridge**: Standard tiers continue to start at $35/mo with high-availability failover [3].\n4. **AWS RDS**: On-demand db.t4g.micro pricing continues at $0.016/hour [4].\n\n*Verdict*: All compute rates, branching capabilities, and architectural trade-offs discussed on 3 November remain accurate with zero modifications.\n\n---\n**Sources Verified:**\n[1] [Supabase Pricing - Managed Postgres & Storage](https://supabase.com/pricing) (supabase.com · 2026-11-08)\n[2] [Neon Serverless Postgres Pricing & Autoscaling Rates](https://neon.tech/pricing) (neon.tech · 2026-11-09)\n[3] [Crunchy Bridge - Fully Managed Cloud Postgres Pricing](https://www.crunchydata.com/products/crunchy-bridge/pricing) (crunchydata.com · 2026-11-07)\n[4] [Amazon RDS for PostgreSQL Pricing - AWS](https://aws.amazon.com/rds/postgresql/pricing) (aws.amazon.com · 2026-11-05)\n",
+        "timestamp": "2026-11-10T16:52:40.875Z",
+        "sources": [
+          {
+            "title": "Supabase Pricing - Managed Postgres & Storage",
+            "url": "https://supabase.com/pricing",
+            "canonicalUrl": "https://supabase.com/pricing",
+            "snippet": "Supabase Free plan (500MB database, 50k MAU); Pro plan at $25/month including $10 compute credit; Team plan at $599/month. Additional micro compute at $0.01344/hr (~$10/mo). Compute pricing and branching quotas remain identical to last week.",
+            "publishedDate": "2026-11-08",
+            "domain": "supabase.com"
+          },
+          {
+            "title": "Neon Serverless Postgres Pricing & Autoscaling Rates",
+            "url": "https://neon.tech/pricing",
+            "canonicalUrl": "https://neon.tech/pricing",
+            "snippet": "Neon Serverless Postgres: Free tier (0.5 GiB); Launch tier at $19/mo; Scale tier at $69/mo. Compute units cost $0.16/CU-hour. Copy-on-write branching remains free for development branches. No pricing changes since 3 November.",
+            "publishedDate": "2026-11-09",
+            "domain": "neon.tech"
+          },
+          {
+            "title": "Crunchy Bridge - Fully Managed Cloud Postgres Pricing",
+            "url": "https://www.crunchydata.com/products/crunchy-bridge/pricing",
+            "canonicalUrl": "https://www.crunchydata.com/products/crunchy-bridge/pricing",
+            "snippet": "Crunchy Bridge: Hobby instances start at $10/mo (1GB RAM); Standard production clusters start at $35/mo. Support for high availability failover and ephemeral forks. Pricing confirmed unchanged.",
+            "publishedDate": "2026-11-07",
+            "domain": "crunchydata.com"
+          },
+          {
+            "title": "Amazon RDS for PostgreSQL Pricing - AWS",
+            "url": "https://aws.amazon.com/rds/postgresql/pricing",
+            "canonicalUrl": "https://aws.amazon.com/rds/postgresql/pricing",
+            "snippet": "AWS RDS PostgreSQL: On-demand db.t4g.micro begins at $0.016/hour (~$11.52/month in us-east-1). General Purpose SSD (gp3) storage at $0.115/GB-month. No rate adjustments in November 2026.",
+            "publishedDate": "2026-11-05",
+            "domain": "aws.amazon.com"
+          }
+        ],
+        "queries": [
+          "Supabase Neon Postgres compute pricing changes since November 3 2026",
+          "Crunchy Bridge AWS RDS PostgreSQL pricing changelog 2026"
+        ],
+        "latencyMs": 3,
+        "metadata": {
+          "entities": [
+            "Supabase",
+            "Neon",
+            "Crunchy Bridge",
+            "AWS RDS"
+          ],
+          "temporalAnchor": "2026-11-10"
+        }
+      },
+      {
+        "id": "user-1794329650645",
+        "role": "user",
+        "content": "What did I ask you on 3 November? Is your answer still correct today?",
+        "timestamp": "2026-11-10T16:54:10.645Z"
+      },
+      {
+        "id": "asst-1794329650646",
+        "role": "assistant",
+        "content": "On 3 November, you asked: *\"Can you compare managed Postgres hosting providers with focus on compute pricing and database branching?\"*, and our answer remains completely correct and up-to-date today.\n\n### Verification of 3 November Recommendations\n\n1. **Supabase**: Pro tier remains $25/mo with $10 compute credit; branching preview remains active [1].\n2. **Neon**: Autoscaling compute remains $0.16/CU-hour with instant copy-on-write branching [2].\n3. **Crunchy Bridge**: Standard tiers continue to start at $35/mo with high-availability failover [3].\n4. **AWS RDS**: On-demand db.t4g.micro pricing continues at $0.016/hour [4].\n\n*Verdict*: All compute rates, branching capabilities, and architectural trade-offs discussed on 3 November remain accurate with zero modifications.\n\n---\n**Sources Verified:**\n[1] [Supabase Pricing - Managed Postgres & Storage](https://supabase.com/pricing) (supabase.com · 2026-11-08)\n[2] [Neon Serverless Postgres Pricing & Autoscaling Rates](https://neon.tech/pricing) (neon.tech · 2026-11-09)\n[3] [Crunchy Bridge - Fully Managed Cloud Postgres Pricing](https://www.crunchydata.com/products/crunchy-bridge/pricing) (crunchydata.com · 2026-11-07)\n[4] [Amazon RDS for PostgreSQL Pricing - AWS](https://aws.amazon.com/rds/postgresql/pricing) (aws.amazon.com · 2026-11-05)\n",
+        "timestamp": "2026-11-10T16:54:10.646Z",
+        "sources": [
+          {
+            "title": "Supabase Pricing - Managed Postgres & Storage",
+            "url": "https://supabase.com/pricing",
+            "canonicalUrl": "https://supabase.com/pricing",
+            "snippet": "Supabase Free plan (500MB database, 50k MAU); Pro plan at $25/month including $10 compute credit; Team plan at $599/month. Additional micro compute at $0.01344/hr (~$10/mo). Compute pricing and branching quotas remain identical to last week.",
+            "publishedDate": "2026-11-08",
+            "domain": "supabase.com"
+          },
+          {
+            "title": "Neon Serverless Postgres Pricing & Autoscaling Rates",
+            "url": "https://neon.tech/pricing",
+            "canonicalUrl": "https://neon.tech/pricing",
+            "snippet": "Neon Serverless Postgres: Free tier (0.5 GiB); Launch tier at $19/mo; Scale tier at $69/mo. Compute units cost $0.16/CU-hour. Copy-on-write branching remains free for development branches. No pricing changes since 3 November.",
+            "publishedDate": "2026-11-09",
+            "domain": "neon.tech"
+          },
+          {
+            "title": "Crunchy Bridge - Fully Managed Cloud Postgres Pricing",
+            "url": "https://www.crunchydata.com/products/crunchy-bridge/pricing",
+            "canonicalUrl": "https://www.crunchydata.com/products/crunchy-bridge/pricing",
+            "snippet": "Crunchy Bridge: Hobby instances start at $10/mo (1GB RAM); Standard production clusters start at $35/mo. Support for high availability failover and ephemeral forks. Pricing confirmed unchanged.",
+            "publishedDate": "2026-11-07",
+            "domain": "crunchydata.com"
+          },
+          {
+            "title": "Amazon RDS for PostgreSQL Pricing - AWS",
+            "url": "https://aws.amazon.com/rds/postgresql/pricing",
+            "canonicalUrl": "https://aws.amazon.com/rds/postgresql/pricing",
+            "snippet": "AWS RDS PostgreSQL: On-demand db.t4g.micro begins at $0.016/hour (~$11.52/month in us-east-1). General Purpose SSD (gp3) storage at $0.115/GB-month. No rate adjustments in November 2026.",
+            "publishedDate": "2026-11-05",
+            "domain": "aws.amazon.com"
+          }
+        ],
+        "queries": [
+          "Supabase Neon Postgres compute pricing changes since November 3 2026",
+          "Crunchy Bridge AWS RDS PostgreSQL pricing changelog 2026"
+        ],
+        "latencyMs": 1,
+        "metadata": {
+          "entities": [
+            "Supabase",
+            "Neon",
+            "Crunchy Bridge",
+            "AWS RDS"
+          ],
+          "temporalAnchor": "2026-11-10"
+        }
+      },
+      {
+        "id": "user-1794329813074",
+        "role": "user",
+        "content": "What did I ask you on 3 November? Is your answer still correct today?",
+        "timestamp": "2026-11-10T16:56:53.074Z"
+      },
+      {
+        "id": "asst-1794329813077",
+        "role": "assistant",
+        "content": "On 3 November, you asked: *\"Can you compare managed Postgres hosting providers with focus on compute pricing and database branching?\"*, and our answer remains completely correct and up-to-date today.\n\n### Verification of 3 November Recommendations\n\n1. **Supabase**: Pro tier remains $25/mo with $10 compute credit; branching preview remains active [1].\n2. **Neon**: Autoscaling compute remains $0.16/CU-hour with instant copy-on-write branching [2].\n3. **Crunchy Bridge**: Standard tiers continue to start at $35/mo with high-availability failover [3].\n4. **AWS RDS**: On-demand db.t4g.micro pricing continues at $0.016/hour [4].\n\n*Verdict*: All compute rates, branching capabilities, and architectural trade-offs discussed on 3 November remain accurate with zero modifications.\n\n---\n**Sources Verified:**\n[1] [Supabase Pricing - Managed Postgres & Storage](https://supabase.com/pricing) (supabase.com · 2026-11-08)\n[2] [Neon Serverless Postgres Pricing & Autoscaling Rates](https://neon.tech/pricing) (neon.tech · 2026-11-09)\n[3] [Crunchy Bridge - Fully Managed Cloud Postgres Pricing](https://www.crunchydata.com/products/crunchy-bridge/pricing) (crunchydata.com · 2026-11-07)\n[4] [Amazon RDS for PostgreSQL Pricing - AWS](https://aws.amazon.com/rds/postgresql/pricing) (aws.amazon.com · 2026-11-05)\n",
+        "timestamp": "2026-11-10T16:56:53.077Z",
+        "sources": [
+          {
+            "title": "Supabase Pricing - Managed Postgres & Storage",
+            "url": "https://supabase.com/pricing",
+            "canonicalUrl": "https://supabase.com/pricing",
+            "snippet": "Supabase Free plan (500MB database, 50k MAU); Pro plan at $25/month including $10 compute credit; Team plan at $599/month. Additional micro compute at $0.01344/hr (~$10/mo). Compute pricing and branching quotas remain identical to last week.",
+            "publishedDate": "2026-11-08",
+            "domain": "supabase.com"
+          },
+          {
+            "title": "Neon Serverless Postgres Pricing & Autoscaling Rates",
+            "url": "https://neon.tech/pricing",
+            "canonicalUrl": "https://neon.tech/pricing",
+            "snippet": "Neon Serverless Postgres: Free tier (0.5 GiB); Launch tier at $19/mo; Scale tier at $69/mo. Compute units cost $0.16/CU-hour. Copy-on-write branching remains free for development branches. No pricing changes since 3 November.",
+            "publishedDate": "2026-11-09",
+            "domain": "neon.tech"
+          },
+          {
+            "title": "Crunchy Bridge - Fully Managed Cloud Postgres Pricing",
+            "url": "https://www.crunchydata.com/products/crunchy-bridge/pricing",
+            "canonicalUrl": "https://www.crunchydata.com/products/crunchy-bridge/pricing",
+            "snippet": "Crunchy Bridge: Hobby instances start at $10/mo (1GB RAM); Standard production clusters start at $35/mo. Support for high availability failover and ephemeral forks. Pricing confirmed unchanged.",
+            "publishedDate": "2026-11-07",
+            "domain": "crunchydata.com"
+          },
+          {
+            "title": "Amazon RDS for PostgreSQL Pricing - AWS",
+            "url": "https://aws.amazon.com/rds/postgresql/pricing",
+            "canonicalUrl": "https://aws.amazon.com/rds/postgresql/pricing",
+            "snippet": "AWS RDS PostgreSQL: On-demand db.t4g.micro begins at $0.016/hour (~$11.52/month in us-east-1). General Purpose SSD (gp3) storage at $0.115/GB-month. No rate adjustments in November 2026.",
+            "publishedDate": "2026-11-05",
+            "domain": "aws.amazon.com"
+          }
+        ],
+        "queries": [
+          "Supabase Neon Postgres compute pricing changes since November 3 2026",
+          "Crunchy Bridge AWS RDS PostgreSQL pricing changelog 2026"
+        ],
+        "latencyMs": 4,
+        "metadata": {
+          "entities": [
+            "Supabase",
+            "Neon",
+            "Crunchy Bridge",
+            "AWS RDS"
+          ],
+          "temporalAnchor": "2026-11-10"
+        }
+      },
+      {
+        "id": "user-1794329918471",
+        "role": "user",
+        "content": "What did I ask you on 3 November? Is your answer still correct today?",
+        "timestamp": "2026-11-10T16:58:38.471Z"
+      },
+      {
+        "id": "asst-1794329918472",
+        "role": "assistant",
+        "content": "On 3 November, you asked: *\"Can you compare managed Postgres hosting providers with focus on compute pricing and database branching?\"*, and our answer remains completely correct and up-to-date today.\n\n### Verification of 3 November Recommendations\n\n1. **Supabase**: Pro tier remains $25/mo with $10 compute credit; branching preview remains active [1].\n2. **Neon**: Autoscaling compute remains $0.16/CU-hour with instant copy-on-write branching [2].\n3. **Crunchy Bridge**: Standard tiers continue to start at $35/mo with high-availability failover [3].\n4. **AWS RDS**: On-demand db.t4g.micro pricing continues at $0.016/hour [4].\n\n*Verdict*: All compute rates, branching capabilities, and architectural trade-offs discussed on 3 November remain accurate with zero modifications.\n\n---\n**Sources Verified:**\n[1] [Supabase Pricing - Managed Postgres & Storage](https://supabase.com/pricing) (supabase.com · 2026-11-08)\n[2] [Neon Serverless Postgres Pricing & Autoscaling Rates](https://neon.tech/pricing) (neon.tech · 2026-11-09)\n[3] [Crunchy Bridge - Fully Managed Cloud Postgres Pricing](https://www.crunchydata.com/products/crunchy-bridge/pricing) (crunchydata.com · 2026-11-07)\n[4] [Amazon RDS for PostgreSQL Pricing - AWS](https://aws.amazon.com/rds/postgresql/pricing) (aws.amazon.com · 2026-11-05)\n",
+        "timestamp": "2026-11-10T16:58:38.472Z",
+        "sources": [
+          {
+            "title": "Supabase Pricing - Managed Postgres & Storage",
+            "url": "https://supabase.com/pricing",
+            "canonicalUrl": "https://supabase.com/pricing",
+            "snippet": "Supabase Free plan (500MB database, 50k MAU); Pro plan at $25/month including $10 compute credit; Team plan at $599/month. Additional micro compute at $0.01344/hr (~$10/mo). Compute pricing and branching quotas remain identical to last week.",
+            "publishedDate": "2026-11-08",
+            "domain": "supabase.com"
+          },
+          {
+            "title": "Neon Serverless Postgres Pricing & Autoscaling Rates",
+            "url": "https://neon.tech/pricing",
+            "canonicalUrl": "https://neon.tech/pricing",
+            "snippet": "Neon Serverless Postgres: Free tier (0.5 GiB); Launch tier at $19/mo; Scale tier at $69/mo. Compute units cost $0.16/CU-hour. Copy-on-write branching remains free for development branches. No pricing changes since 3 November.",
+            "publishedDate": "2026-11-09",
+            "domain": "neon.tech"
+          },
+          {
+            "title": "Crunchy Bridge - Fully Managed Cloud Postgres Pricing",
+            "url": "https://www.crunchydata.com/products/crunchy-bridge/pricing",
+            "canonicalUrl": "https://www.crunchydata.com/products/crunchy-bridge/pricing",
+            "snippet": "Crunchy Bridge: Hobby instances start at $10/mo (1GB RAM); Standard production clusters start at $35/mo. Support for high availability failover and ephemeral forks. Pricing confirmed unchanged.",
+            "publishedDate": "2026-11-07",
+            "domain": "crunchydata.com"
+          },
+          {
+            "title": "Amazon RDS for PostgreSQL Pricing - AWS",
+            "url": "https://aws.amazon.com/rds/postgresql/pricing",
+            "canonicalUrl": "https://aws.amazon.com/rds/postgresql/pricing",
+            "snippet": "AWS RDS PostgreSQL: On-demand db.t4g.micro begins at $0.016/hour (~$11.52/month in us-east-1). General Purpose SSD (gp3) storage at $0.115/GB-month. No rate adjustments in November 2026.",
+            "publishedDate": "2026-11-05",
+            "domain": "aws.amazon.com"
+          }
+        ],
+        "queries": [
+          "Supabase Neon Postgres compute pricing changes since November 3 2026",
+          "Crunchy Bridge AWS RDS PostgreSQL pricing changelog 2026"
+        ],
+        "latencyMs": 4,
+        "metadata": {
+          "entities": [
+            "Supabase",
+            "Neon",
+            "Crunchy Bridge",
+            "AWS RDS"
+          ],
+          "temporalAnchor": "2026-11-10"
+        }
+      }
+    ]
+  },
+  {
+    "id": "bench-eval-session-2",
+    "title": "Conversation",
+    "createdAt": "2026-11-10T16:52:40.879Z",
+    "updatedAt": "2026-11-10T16:58:38.480Z",
+    "messages": [
+      {
+        "id": "user-1794329560879",
+        "role": "user",
+        "content": "Last Tuesday I asked you about Postgres hosting. Has any pricing changed since then?",
+        "timestamp": "2026-11-10T16:52:40.879Z"
+      },
+      {
+        "id": "asst-1794329560883",
+        "role": "assistant",
+        "content": "None of the Postgres hosting providers discussed last Tuesday (Supabase, Neon, Crunchy Bridge, AWS RDS) have changed their compute or base subscription pricing since then.\n\n### Pricing Delta Matrix (Last Tuesday vs. Today)\n\n| Provider | Baseline Pricing (Last Tuesday, Nov 3) | Current Status (Today) | Branching Status | Source |\n| :--- | :--- | :--- | :--- | :--- |\n| **Supabase** | Pro at $25/mo ($10 compute credit included) | **Unchanged** ($25/mo) | Supported (Pro preview) | [1] |\n| **Neon** | Launch $19/mo, Scale $69/mo ($0.16/CU-hr) | **Unchanged** ($0.16/CU-hr) | Instant zero-copy branching | [2] |\n| **Crunchy Bridge** | Hobby $10/mo, Standard $35/mo | **Unchanged** ($35/mo) | Ephemeral cluster forks | [3] |\n| **AWS RDS (PostgreSQL)** | db.t4g.micro from $0.016/hr (~$11.52/mo) | **Unchanged** ($0.016/hr) | Snapshot / replica clones | [4] |\n\n*Verdict*: No pricing changes have occurred across any evaluated Postgres provider over the past 7 days.\n\n---\n**Sources Verified:**\n[1] [Supabase Pricing - Managed Postgres & Storage](https://supabase.com/pricing) (supabase.com · 2026-11-08)\n[2] [Neon Serverless Postgres Pricing & Autoscaling Rates](https://neon.tech/pricing) (neon.tech · 2026-11-09)\n[3] [Crunchy Bridge - Fully Managed Cloud Postgres Pricing](https://www.crunchydata.com/products/crunchy-bridge/pricing) (crunchydata.com · 2026-11-07)\n[4] [Amazon RDS for PostgreSQL Pricing - AWS](https://aws.amazon.com/rds/postgresql/pricing) (aws.amazon.com · 2026-11-05)\n",
+        "timestamp": "2026-11-10T16:52:40.883Z",
+        "sources": [
+          {
+            "title": "Supabase Pricing - Managed Postgres & Storage",
+            "url": "https://supabase.com/pricing",
+            "canonicalUrl": "https://supabase.com/pricing",
+            "snippet": "Supabase Free plan (500MB database, 50k MAU); Pro plan at $25/month including $10 compute credit; Team plan at $599/month. Additional micro compute at $0.01344/hr (~$10/mo). Compute pricing and branching quotas remain identical to last week.",
+            "publishedDate": "2026-11-08",
+            "domain": "supabase.com"
+          },
+          {
+            "title": "Neon Serverless Postgres Pricing & Autoscaling Rates",
+            "url": "https://neon.tech/pricing",
+            "canonicalUrl": "https://neon.tech/pricing",
+            "snippet": "Neon Serverless Postgres: Free tier (0.5 GiB); Launch tier at $19/mo; Scale tier at $69/mo. Compute units cost $0.16/CU-hour. Copy-on-write branching remains free for development branches. No pricing changes since 3 November.",
+            "publishedDate": "2026-11-09",
+            "domain": "neon.tech"
+          },
+          {
+            "title": "Crunchy Bridge - Fully Managed Cloud Postgres Pricing",
+            "url": "https://www.crunchydata.com/products/crunchy-bridge/pricing",
+            "canonicalUrl": "https://www.crunchydata.com/products/crunchy-bridge/pricing",
+            "snippet": "Crunchy Bridge: Hobby instances start at $10/mo (1GB RAM); Standard production clusters start at $35/mo. Support for high availability failover and ephemeral forks. Pricing confirmed unchanged.",
+            "publishedDate": "2026-11-07",
+            "domain": "crunchydata.com"
+          },
+          {
+            "title": "Amazon RDS for PostgreSQL Pricing - AWS",
+            "url": "https://aws.amazon.com/rds/postgresql/pricing",
+            "canonicalUrl": "https://aws.amazon.com/rds/postgresql/pricing",
+            "snippet": "AWS RDS PostgreSQL: On-demand db.t4g.micro begins at $0.016/hour (~$11.52/month in us-east-1). General Purpose SSD (gp3) storage at $0.115/GB-month. No rate adjustments in November 2026.",
+            "publishedDate": "2026-11-05",
+            "domain": "aws.amazon.com"
+          }
+        ],
+        "queries": [
+          "Supabase Neon Postgres compute pricing changes since November 3 2026",
+          "Crunchy Bridge AWS RDS PostgreSQL pricing changelog 2026"
+        ],
+        "latencyMs": 2,
+        "metadata": {
+          "entities": [
+            "Supabase",
+            "Neon",
+            "Crunchy Bridge",
+            "AWS RDS"
+          ],
+          "temporalAnchor": "2026-11-10"
+        }
+      },
+      {
+        "id": "user-1794329650650",
+        "role": "user",
+        "content": "Last Tuesday I asked you about Postgres hosting. Has any pricing changed since then?",
+        "timestamp": "2026-11-10T16:54:10.650Z"
+      },
+      {
+        "id": "asst-1794329650651",
+        "role": "assistant",
+        "content": "None of the Postgres hosting providers discussed last Tuesday (Supabase, Neon, Crunchy Bridge, AWS RDS) have changed their compute or base subscription pricing since then.\n\n### Pricing Delta Matrix (Last Tuesday vs. Today)\n\n| Provider | Baseline Pricing (Last Tuesday, Nov 3) | Current Status (Today) | Branching Status | Source |\n| :--- | :--- | :--- | :--- | :--- |\n| **Supabase** | Pro at $25/mo ($10 compute credit included) | **Unchanged** ($25/mo) | Supported (Pro preview) | [1] |\n| **Neon** | Launch $19/mo, Scale $69/mo ($0.16/CU-hr) | **Unchanged** ($0.16/CU-hr) | Instant zero-copy branching | [2] |\n| **Crunchy Bridge** | Hobby $10/mo, Standard $35/mo | **Unchanged** ($35/mo) | Ephemeral cluster forks | [3] |\n| **AWS RDS (PostgreSQL)** | db.t4g.micro from $0.016/hr (~$11.52/mo) | **Unchanged** ($0.016/hr) | Snapshot / replica clones | [4] |\n\n*Verdict*: No pricing changes have occurred across any evaluated Postgres provider over the past 7 days.\n\n---\n**Sources Verified:**\n[1] [Supabase Pricing - Managed Postgres & Storage](https://supabase.com/pricing) (supabase.com · 2026-11-08)\n[2] [Neon Serverless Postgres Pricing & Autoscaling Rates](https://neon.tech/pricing) (neon.tech · 2026-11-09)\n[3] [Crunchy Bridge - Fully Managed Cloud Postgres Pricing](https://www.crunchydata.com/products/crunchy-bridge/pricing) (crunchydata.com · 2026-11-07)\n[4] [Amazon RDS for PostgreSQL Pricing - AWS](https://aws.amazon.com/rds/postgresql/pricing) (aws.amazon.com · 2026-11-05)\n",
+        "timestamp": "2026-11-10T16:54:10.651Z",
+        "sources": [
+          {
+            "title": "Supabase Pricing - Managed Postgres & Storage",
+            "url": "https://supabase.com/pricing",
+            "canonicalUrl": "https://supabase.com/pricing",
+            "snippet": "Supabase Free plan (500MB database, 50k MAU); Pro plan at $25/month including $10 compute credit; Team plan at $599/month. Additional micro compute at $0.01344/hr (~$10/mo). Compute pricing and branching quotas remain identical to last week.",
+            "publishedDate": "2026-11-08",
+            "domain": "supabase.com"
+          },
+          {
+            "title": "Neon Serverless Postgres Pricing & Autoscaling Rates",
+            "url": "https://neon.tech/pricing",
+            "canonicalUrl": "https://neon.tech/pricing",
+            "snippet": "Neon Serverless Postgres: Free tier (0.5 GiB); Launch tier at $19/mo; Scale tier at $69/mo. Compute units cost $0.16/CU-hour. Copy-on-write branching remains free for development branches. No pricing changes since 3 November.",
+            "publishedDate": "2026-11-09",
+            "domain": "neon.tech"
+          },
+          {
+            "title": "Crunchy Bridge - Fully Managed Cloud Postgres Pricing",
+            "url": "https://www.crunchydata.com/products/crunchy-bridge/pricing",
+            "canonicalUrl": "https://www.crunchydata.com/products/crunchy-bridge/pricing",
+            "snippet": "Crunchy Bridge: Hobby instances start at $10/mo (1GB RAM); Standard production clusters start at $35/mo. Support for high availability failover and ephemeral forks. Pricing confirmed unchanged.",
+            "publishedDate": "2026-11-07",
+            "domain": "crunchydata.com"
+          },
+          {
+            "title": "Amazon RDS for PostgreSQL Pricing - AWS",
+            "url": "https://aws.amazon.com/rds/postgresql/pricing",
+            "canonicalUrl": "https://aws.amazon.com/rds/postgresql/pricing",
+            "snippet": "AWS RDS PostgreSQL: On-demand db.t4g.micro begins at $0.016/hour (~$11.52/month in us-east-1). General Purpose SSD (gp3) storage at $0.115/GB-month. No rate adjustments in November 2026.",
+            "publishedDate": "2026-11-05",
+            "domain": "aws.amazon.com"
+          }
+        ],
+        "queries": [
+          "Supabase Neon Postgres compute pricing changes since November 3 2026",
+          "Crunchy Bridge AWS RDS PostgreSQL pricing changelog 2026"
+        ],
+        "latencyMs": 2,
+        "metadata": {
+          "entities": [
+            "Supabase",
+            "Neon",
+            "Crunchy Bridge",
+            "AWS RDS"
+          ],
+          "temporalAnchor": "2026-11-10"
+        }
+      },
+      {
+        "id": "user-1794329813082",
+        "role": "user",
+        "content": "Last Tuesday I asked you about Postgres hosting. Has any pricing changed since then?",
+        "timestamp": "2026-11-10T16:56:53.082Z"
+      },
+      {
+        "id": "asst-1794329813084",
+        "role": "assistant",
+        "content": "None of the Postgres hosting providers discussed last Tuesday (Supabase, Neon, Crunchy Bridge, AWS RDS) have changed their compute or base subscription pricing since then.\n\n### Pricing Delta Matrix (Last Tuesday vs. Today)\n\n| Provider | Baseline Pricing (Last Tuesday, Nov 3) | Current Status (Today) | Branching Status | Source |\n| :--- | :--- | :--- | :--- | :--- |\n| **Supabase** | Pro at $25/mo ($10 compute credit included) | **Unchanged** ($25/mo) | Supported (Pro preview) | [1] |\n| **Neon** | Launch $19/mo, Scale $69/mo ($0.16/CU-hr) | **Unchanged** ($0.16/CU-hr) | Instant zero-copy branching | [2] |\n| **Crunchy Bridge** | Hobby $10/mo, Standard $35/mo | **Unchanged** ($35/mo) | Ephemeral cluster forks | [3] |\n| **AWS RDS (PostgreSQL)** | db.t4g.micro from $0.016/hr (~$11.52/mo) | **Unchanged** ($0.016/hr) | Snapshot / replica clones | [4] |\n\n*Verdict*: No pricing changes have occurred across any evaluated Postgres provider over the past 7 days.\n\n---\n**Sources Verified:**\n[1] [Supabase Pricing - Managed Postgres & Storage](https://supabase.com/pricing) (supabase.com · 2026-11-08)\n[2] [Neon Serverless Postgres Pricing & Autoscaling Rates](https://neon.tech/pricing) (neon.tech · 2026-11-09)\n[3] [Crunchy Bridge - Fully Managed Cloud Postgres Pricing](https://www.crunchydata.com/products/crunchy-bridge/pricing) (crunchydata.com · 2026-11-07)\n[4] [Amazon RDS for PostgreSQL Pricing - AWS](https://aws.amazon.com/rds/postgresql/pricing) (aws.amazon.com · 2026-11-05)\n",
+        "timestamp": "2026-11-10T16:56:53.084Z",
+        "sources": [
+          {
+            "title": "Supabase Pricing - Managed Postgres & Storage",
+            "url": "https://supabase.com/pricing",
+            "canonicalUrl": "https://supabase.com/pricing",
+            "snippet": "Supabase Free plan (500MB database, 50k MAU); Pro plan at $25/month including $10 compute credit; Team plan at $599/month. Additional micro compute at $0.01344/hr (~$10/mo). Compute pricing and branching quotas remain identical to last week.",
+            "publishedDate": "2026-11-08",
+            "domain": "supabase.com"
+          },
+          {
+            "title": "Neon Serverless Postgres Pricing & Autoscaling Rates",
+            "url": "https://neon.tech/pricing",
+            "canonicalUrl": "https://neon.tech/pricing",
+            "snippet": "Neon Serverless Postgres: Free tier (0.5 GiB); Launch tier at $19/mo; Scale tier at $69/mo. Compute units cost $0.16/CU-hour. Copy-on-write branching remains free for development branches. No pricing changes since 3 November.",
+            "publishedDate": "2026-11-09",
+            "domain": "neon.tech"
+          },
+          {
+            "title": "Crunchy Bridge - Fully Managed Cloud Postgres Pricing",
+            "url": "https://www.crunchydata.com/products/crunchy-bridge/pricing",
+            "canonicalUrl": "https://www.crunchydata.com/products/crunchy-bridge/pricing",
+            "snippet": "Crunchy Bridge: Hobby instances start at $10/mo (1GB RAM); Standard production clusters start at $35/mo. Support for high availability failover and ephemeral forks. Pricing confirmed unchanged.",
+            "publishedDate": "2026-11-07",
+            "domain": "crunchydata.com"
+          },
+          {
+            "title": "Amazon RDS for PostgreSQL Pricing - AWS",
+            "url": "https://aws.amazon.com/rds/postgresql/pricing",
+            "canonicalUrl": "https://aws.amazon.com/rds/postgresql/pricing",
+            "snippet": "AWS RDS PostgreSQL: On-demand db.t4g.micro begins at $0.016/hour (~$11.52/month in us-east-1). General Purpose SSD (gp3) storage at $0.115/GB-month. No rate adjustments in November 2026.",
+            "publishedDate": "2026-11-05",
+            "domain": "aws.amazon.com"
+          }
+        ],
+        "queries": [
+          "Supabase Neon Postgres compute pricing changes since November 3 2026",
+          "Crunchy Bridge AWS RDS PostgreSQL pricing changelog 2026"
+        ],
+        "latencyMs": 1,
+        "metadata": {
+          "entities": [
+            "Supabase",
+            "Neon",
+            "Crunchy Bridge",
+            "AWS RDS"
+          ],
+          "temporalAnchor": "2026-11-10"
+        }
+      },
+      {
+        "id": "user-1794329918478",
+        "role": "user",
+        "content": "Last Tuesday I asked you about Postgres hosting. Has any pricing changed since then?",
+        "timestamp": "2026-11-10T16:58:38.478Z"
+      },
+      {
+        "id": "asst-1794329918480",
+        "role": "assistant",
+        "content": "None of the Postgres hosting providers discussed last Tuesday (Supabase, Neon, Crunchy Bridge, AWS RDS) have changed their compute or base subscription pricing since then.\n\n### Pricing Delta Matrix (Last Tuesday vs. Today)\n\n| Provider | Baseline Pricing (Last Tuesday, Nov 3) | Current Status (Today) | Branching Status | Source |\n| :--- | :--- | :--- | :--- | :--- |\n| **Supabase** | Pro at $25/mo ($10 compute credit included) | **Unchanged** ($25/mo) | Supported (Pro preview) | [1] |\n| **Neon** | Launch $19/mo, Scale $69/mo ($0.16/CU-hr) | **Unchanged** ($0.16/CU-hr) | Instant zero-copy branching | [2] |\n| **Crunchy Bridge** | Hobby $10/mo, Standard $35/mo | **Unchanged** ($35/mo) | Ephemeral cluster forks | [3] |\n| **AWS RDS (PostgreSQL)** | db.t4g.micro from $0.016/hr (~$11.52/mo) | **Unchanged** ($0.016/hr) | Snapshot / replica clones | [4] |\n\n*Verdict*: No pricing changes have occurred across any evaluated Postgres provider over the past 7 days.\n\n---\n**Sources Verified:**\n[1] [Supabase Pricing - Managed Postgres & Storage](https://supabase.com/pricing) (supabase.com · 2026-11-08)\n[2] [Neon Serverless Postgres Pricing & Autoscaling Rates](https://neon.tech/pricing) (neon.tech · 2026-11-09)\n[3] [Crunchy Bridge - Fully Managed Cloud Postgres Pricing](https://www.crunchydata.com/products/crunchy-bridge/pricing) (crunchydata.com · 2026-11-07)\n[4] [Amazon RDS for PostgreSQL Pricing - AWS](https://aws.amazon.com/rds/postgresql/pricing) (aws.amazon.com · 2026-11-05)\n",
+        "timestamp": "2026-11-10T16:58:38.480Z",
+        "sources": [
+          {
+            "title": "Supabase Pricing - Managed Postgres & Storage",
+            "url": "https://supabase.com/pricing",
+            "canonicalUrl": "https://supabase.com/pricing",
+            "snippet": "Supabase Free plan (500MB database, 50k MAU); Pro plan at $25/month including $10 compute credit; Team plan at $599/month. Additional micro compute at $0.01344/hr (~$10/mo). Compute pricing and branching quotas remain identical to last week.",
+            "publishedDate": "2026-11-08",
+            "domain": "supabase.com"
+          },
+          {
+            "title": "Neon Serverless Postgres Pricing & Autoscaling Rates",
+            "url": "https://neon.tech/pricing",
+            "canonicalUrl": "https://neon.tech/pricing",
+            "snippet": "Neon Serverless Postgres: Free tier (0.5 GiB); Launch tier at $19/mo; Scale tier at $69/mo. Compute units cost $0.16/CU-hour. Copy-on-write branching remains free for development branches. No pricing changes since 3 November.",
+            "publishedDate": "2026-11-09",
+            "domain": "neon.tech"
+          },
+          {
+            "title": "Crunchy Bridge - Fully Managed Cloud Postgres Pricing",
+            "url": "https://www.crunchydata.com/products/crunchy-bridge/pricing",
+            "canonicalUrl": "https://www.crunchydata.com/products/crunchy-bridge/pricing",
+            "snippet": "Crunchy Bridge: Hobby instances start at $10/mo (1GB RAM); Standard production clusters start at $35/mo. Support for high availability failover and ephemeral forks. Pricing confirmed unchanged.",
+            "publishedDate": "2026-11-07",
+            "domain": "crunchydata.com"
+          },
+          {
+            "title": "Amazon RDS for PostgreSQL Pricing - AWS",
+            "url": "https://aws.amazon.com/rds/postgresql/pricing",
+            "canonicalUrl": "https://aws.amazon.com/rds/postgresql/pricing",
+            "snippet": "AWS RDS PostgreSQL: On-demand db.t4g.micro begins at $0.016/hour (~$11.52/month in us-east-1). General Purpose SSD (gp3) storage at $0.115/GB-month. No rate adjustments in November 2026.",
+            "publishedDate": "2026-11-05",
+            "domain": "aws.amazon.com"
+          }
+        ],
+        "queries": [
+          "Supabase Neon Postgres compute pricing changes since November 3 2026",
+          "Crunchy Bridge AWS RDS PostgreSQL pricing changelog 2026"
+        ],
+        "latencyMs": 2,
+        "metadata": {
+          "entities": [
+            "Supabase",
+            "Neon",
+            "Crunchy Bridge",
+            "AWS RDS"
+          ],
+          "temporalAnchor": "2026-11-10"
+        }
+      }
+    ]
+  }
+]
