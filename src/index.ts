@@ -4,149 +4,156 @@ import { stdin as input, stdout as output } from 'node:process';
 import { createSearchClient } from './search.js';
 import { MemoryStore } from './memory.js';
 import { SearchAgent } from './agent.js';
-import { getBenchmarkSeedData } from './seed.js';
+import { seedDataset } from './seed.js';
 
-// ANSI color helpers
-const colors = {
+const ansi = {
   reset: '\x1b[0m',
   bold: '\x1b[1m',
   dim: '\x1b[2m',
-  cyan: '\x1b[36m',
-  blue: '\x1b[34m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  magenta: '\x1b[35m',
+  amber: '\x1b[33m',
+  red: '\x1b[31m',
 };
 
-async function runEvaluationBenchmarks(agent: SearchAgent) {
-  console.log(`\n${colors.bold}${colors.magenta}=== RUNNING BENCHMARK EVALUATION TEST SUITE ===${colors.reset}\n`);
+function formatSeconds(ms: number): string {
+  return `${(ms / 1000).toFixed(3)}s`;
+}
 
-  const benchmarkQueries = [
+async function runEvaluationDryRun(memoryStore: MemoryStore): Promise<boolean> {
+  console.log('\nDeltaCheck evaluation dry-run (simulated clock: 2026-11-11)\n');
+
+  const agent = new SearchAgent({
+    searchClient: createSearchClient('mock'),
+    memoryStore,
+    simulatedDate: new Date('2026-11-11T12:00:00.000Z'),
+  });
+
+  const cases = [
     {
-      name: 'Benchmark 1: Monday CRM Shortlist Delta',
-      query: 'On Monday we shortlisted 5 CRM tools for a 20-person sales team. Has any of them changed pricing or shipped something big since?',
-      expectedEntities: ['HubSpot', 'Pipedrive', 'Salesforce'],
+      name: 'Monday CRM shortlist delta',
+      query:
+        'On Monday we shortlisted 5 CRM tools for a 20-person sales team. Has any of them changed pricing or shipped something big since?',
+      expectedRefDate: '2026-11-09',
+      requiredTerms: ['HubSpot', 'Pipedrive', 'Salesforce', 'Freshsales', 'Close'],
     },
     {
-      name: 'Benchmark 2: 3 November Question Check',
+      name: '3 November question recall',
       query: 'What did I ask you on 3 November? Is your answer still correct today?',
-      expectedEntities: ['Supabase', 'Neon', 'Postgres'],
+      expectedRefDate: '2026-11-03',
+      requiredTerms: ['Postgres', 'Supabase', 'Neon', 'Crunchy Bridge', 'AWS RDS'],
     },
     {
-      name: 'Benchmark 3: Last Tuesday Postgres Hosting Pricing',
+      name: 'Last Tuesday Postgres pricing',
       query: 'Last Tuesday I asked you about Postgres hosting. Has any pricing changed since then?',
-      expectedEntities: ['Supabase', 'Neon', 'Crunchy Bridge', 'AWS RDS'],
+      expectedRefDate: '2026-11-03',
+      requiredTerms: ['Supabase', 'Neon', 'Crunchy Bridge', 'AWS RDS'],
     },
   ];
 
   let passed = 0;
 
-  for (let i = 0; i < benchmarkQueries.length; i++) {
-    const item = benchmarkQueries[i];
-    console.log(`${colors.bold}${colors.cyan}[${i + 1}/3] ${item.name}${colors.reset}`);
-    console.log(`${colors.dim}Query: "${item.query}"${colors.reset}`);
+  for (let i = 0; i < cases.length; i++) {
+    const item = cases[i];
+    const res = await agent.process(item.query, `eval-dry-run-${i}`);
+    const anchor = res.routerDecision.temporalAnchor;
+    const refTag = anchor.referenceDateIso
+      ? `${anchor.referenceDateIso} (-${anchor.deltaDays}d)`
+      : 'none';
 
-    const res = await agent.process(item.query, `bench-eval-session-${i}`);
+    console.log(`[${i + 1}/${cases.length}] ${item.name}`);
+    console.log(`${ansi.dim}  ref ${refTag} | ${res.queries.length} queries | ${res.sources.length} sources | ${formatSeconds(res.latencyMs)}${ansi.reset}`);
+    console.log(`${res.content}\n`);
 
-    console.log(`${colors.green}↳ Latency: ${res.latencyMs}ms | Queries Dispatched: ${res.queries.length} | Sources Verified: ${res.sources.length}${colors.reset}`);
-    console.log(`${colors.dim}Queries: [${res.queries.map((q) => `"${q}"`).join(', ')}]${colors.reset}`);
-    console.log(`\n${colors.bold}Agent Verdict:${colors.reset}\n${res.content}\n`);
-    console.log(`${colors.dim}------------------------------------------------------------${colors.reset}\n`);
+    const noFiller =
+      !res.content.startsWith('Based on my search') &&
+      !res.content.startsWith('I checked') &&
+      !res.content.startsWith('Here is what I found');
+    const hasLinks = /\[[^\]]+\]\(https?:\/\/[^)]+\)/.test(res.content);
+    const matchesRefDate = anchor.referenceDateIso === item.expectedRefDate;
+    const coversEntities = item.requiredTerms.every((term) =>
+      res.content.toLowerCase().includes(term.toLowerCase())
+    );
 
-    // Verification asserts
-    const hasVerdict = res.content.length > 50;
-    const hasSources = res.sources.length > 0;
-    const hasFirstSentenceVerdict = !res.content.startsWith('Based on my search') && !res.content.startsWith('I searched');
-
-    if (hasVerdict && hasSources && hasFirstSentenceVerdict) {
+    if (noFiller && hasLinks && matchesRefDate && coversEntities && res.sources.length > 0) {
       passed++;
+    } else {
+      console.error(
+        `${ansi.red}  failed: noFiller=${noFiller}, hasLinks=${hasLinks}, matchesRefDate=${matchesRefDate} (got ${anchor.referenceDateIso}), coversEntities=${coversEntities}${ansi.reset}`
+      );
     }
   }
 
-  console.log(`${colors.bold}${colors.green}Benchmark Suite Result: ${passed}/3 Passed Successfully!${colors.reset}\n`);
-  return passed === 3;
+  console.log(`Result: ${passed}/${cases.length} passed`);
+  return passed === cases.length;
 }
 
 async function main() {
-  const isTestMode = process.argv.includes('--test') || process.argv.includes('--eval');
-
-  // Initialize Memory Store & Seed
+  const isEvalMode = process.argv.includes('--eval') || process.argv.includes('--test');
   const memoryStore = new MemoryStore();
-  memoryStore.ensureSeeded(getBenchmarkSeedData);
+  seedDataset(memoryStore, false);
 
-  // Initialize Search Client
-  const searchClient = createSearchClient();
-
-  // Anchored System Clock: Tuesday, Nov 10, 2026
-  const anchorDate = new Date('2026-11-10T12:00:00Z');
-
-  // Initialize Agent
-  const agent = new SearchAgent({
-    searchClient,
-    memoryStore,
-    simulatedDate: anchorDate,
-  });
-
-  if (isTestMode) {
-    const success = await runEvaluationBenchmarks(agent);
-    process.exit(success ? 0 : 1);
+  if (isEvalMode) {
+    const dryRunStore = new MemoryStore('./data/agent_memory.json', false);
+    seedDataset(dryRunStore, false);
+    const ok = await runEvaluationDryRun(dryRunStore);
+    process.exit(ok ? 0 : 1);
   }
 
-  // Interactive CLI REPL
-  console.clear();
-  console.log(`${colors.bold}${colors.cyan}================================================================${colors.reset}`);
-  console.log(`${colors.bold}${colors.cyan}             ANTIGRAVITY CLI CHAT SEARCH AGENT                  ${colors.reset}`);
-  console.log(`${colors.dim}  Temporal Grounding · Parallel Search Dispatch · Differential Synthesis  ${colors.reset}`);
-  console.log(`${colors.bold}${colors.cyan}================================================================${colors.reset}`);
-  console.log(`${colors.dim}System Date:      ${colors.reset}${anchorDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })}`);
-  console.log(`${colors.dim}Search Engine:    ${colors.reset}${colors.green}${searchClient.name.toUpperCase()}${colors.reset}`);
-  console.log(`${colors.dim}Storage File:     ${colors.reset}${memoryStore['filePath']}`);
-  console.log(`${colors.dim}Benchmark Memory: ${colors.reset}${memoryStore.listConversations().length} pre-seeded reference sessions loaded`);
-  console.log(`${colors.dim}Commands:         Type 'exit' to quit, 'eval' to run benchmark suite${colors.reset}`);
-  console.log(`${colors.cyan}----------------------------------------------------------------${colors.reset}\n`);
+  const searchClient = createSearchClient();
+  const agent = new SearchAgent({ searchClient, memoryStore });
+  const now = new Date();
+
+  console.log(`\n${ansi.bold}DeltaCheck${ansi.reset} ${ansi.dim}(${agent.formatIsoDate(now)} · ${searchClient.name} · ${agent.modelName})${ansi.reset}`);
+  console.log(`${ansi.dim}Memory: ${memoryStore.filePath} (${memoryStore.listConversations().length} threads)${ansi.reset}`);
+  console.log(`${ansi.dim}Type a question, 'eval' to run fixture checks, or 'exit' to quit.${ansi.reset}\n`);
 
   const rl = readline.createInterface({ input, output });
-  const sessionId = `cli-session-${Date.now()}`;
+  const sessionId = `cli-${Date.now()}`;
 
   while (true) {
     try {
-      const userPrompt = await rl.question(`${colors.bold}${colors.blue}You ❯ ${colors.reset}`);
-      const trimmed = userPrompt.trim();
-
+      const raw = await rl.question(`${ansi.bold}> ${ansi.reset}`);
+      const trimmed = raw.trim();
       if (!trimmed) continue;
+
       if (trimmed.toLowerCase() === 'exit' || trimmed.toLowerCase() === 'quit') {
-        console.log(`\n${colors.dim}Goodbye!${colors.reset}`);
         rl.close();
         break;
       }
 
-      if (trimmed.toLowerCase() === 'eval' || trimmed.toLowerCase() === 'test') {
-        await runEvaluationBenchmarks(agent);
+      if (trimmed.toLowerCase() === 'eval') {
+        await runEvaluationDryRun(memoryStore);
         continue;
       }
 
-      console.log(`\n${colors.dim}⚡ Processing Stage 1 (Route) ➔ Stage 2 (Parallel Search) ➔ Stage 3 (Synthesis)...${colors.reset}`);
-
       const response = await agent.process(trimmed, sessionId);
+      const anchor = response.routerDecision.temporalAnchor;
 
-      console.log(`\n${colors.bold}${colors.magenta}Antigravity ❯ ${colors.reset}`);
-      console.log(response.content);
-      console.log(`\n${colors.dim}────────────────────────────────────────────────────────────────${colors.reset}`);
-      console.log(
-        `${colors.dim}⏱ Latency: ${colors.green}${response.latencyMs}ms${colors.reset} ${colors.dim}| Queries: ${colors.cyan}${response.queries.length}${colors.reset} ${colors.dim}| Sources: ${colors.yellow}${response.sources.length}${colors.reset}`
-      );
-      if (response.queries.length > 0) {
-        console.log(`${colors.dim}Dispatched: ${response.queries.map((q) => `"${q}"`).join(', ')}${colors.reset}`);
+      console.log(`\n${response.content}`);
+
+      const metaParts = [
+        formatSeconds(response.latencyMs),
+        `${response.queries.length} ${response.queries.length === 1 ? 'query' : 'queries'}`,
+        `${response.sources.length} ${response.sources.length === 1 ? 'source' : 'sources'}`,
+      ];
+      if (anchor.referenceDateIso) {
+        metaParts.push(`${ansi.amber}${anchor.referenceDateIso} (-${anchor.deltaDays}d)${ansi.reset}`);
       }
-      console.log(`${colors.dim}────────────────────────────────────────────────────────────────${colors.reset}\n`);
+      console.log(`\n${ansi.dim}${metaParts.join(' · ')}${ansi.reset}`);
+
+      if (response.sources.length > 0) {
+        response.sources.forEach((s, idx) => {
+          const dateStr = s.publishedDate ? ` · ${s.publishedDate}` : '';
+          console.log(`${ansi.dim}  [${idx + 1}] ${s.title} (${s.domain}${dateStr}) ${s.url}${ansi.reset}`);
+        });
+      }
+      console.log('');
     } catch (err) {
-      console.error(`\n${colors.yellow}Error:${colors.reset}`, (err as Error).message);
+      console.error(`${ansi.red}Error:${ansi.reset}`, (err as Error).message);
     }
   }
 }
 
 main().catch((err) => {
-  console.error('Fatal initialization error:', err);
+  console.error('Fatal error:', err);
   process.exit(1);
 });
-

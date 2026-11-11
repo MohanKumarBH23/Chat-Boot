@@ -1,7 +1,18 @@
 import OpenAI from 'openai';
-import { ISearchClient, SearchResult, RouterDecision, AgentResponse, TemporalAnchor } from './types.js';
+import {
+  ISearchClient,
+  SearchResult,
+  RouterDecision,
+  AgentResponse,
+  TemporalAnchor,
+  StreamEvent,
+} from './types.js';
 import { MemoryStore } from './memory.js';
 import { deduplicateResults } from './search.js';
+
+const WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+const GREETING_WORDS = new Set(['hi', 'hello', 'hey', 'thanks', 'thank you', 'bye']);
 
 export class SearchAgent {
   private openai?: OpenAI;
@@ -22,160 +33,224 @@ export class SearchAgent {
     this.model = options.model || process.env.OPENAI_MODEL || 'gpt-4o';
     this.simulatedDate = options.simulatedDate;
 
-    const apiKey = options.openaiApiKey || process.env.OPENAI_API_KEY;
-    if (apiKey) {
-      this.openai = new OpenAI({ apiKey });
+    const apiKey = options.openaiApiKey ?? process.env.OPENAI_API_KEY;
+    if (apiKey && apiKey.trim().length > 0) {
+      this.openai = new OpenAI({ apiKey: apiKey.trim() });
     }
   }
 
-  /**
-   * Resolves the real-world temporal anchor with day-of-week and relative reference calculations.
-   */
-  getTemporalAnchor(userMessage: string): TemporalAnchor {
-    const now = this.simulatedDate || new Date();
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const currentDayOfWeek = dayNames[now.getDay()];
+  get isLlmConfigured(): boolean {
+    return Boolean(this.openai);
+  }
 
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const d = String(now.getDate()).padStart(2, '0');
-    const currentDateIso = `${y}-${m}-${d}`;
+  get modelName(): string {
+    return this.openai ? this.model : 'heuristic';
+  }
 
-    const currentFormatted = now.toLocaleDateString('en-US', {
+  get searchProviderName(): string {
+    return this.searchClient.name;
+  }
+
+  get memoryStore(): MemoryStore {
+    return this.memory;
+  }
+
+  formatIsoDate(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  formatHumanDate(date: Date): string {
+    return date.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'short',
       day: 'numeric',
     });
-
-    const lower = userMessage.toLowerCase();
-    let referenceDate: Date | null = null;
-    let relativeDescription = '';
-
-    // Relative date resolution
-    if (lower.includes('today')) {
-      referenceDate = new Date(now);
-      relativeDescription = 'today';
-    } else if (lower.includes('yesterday')) {
-      referenceDate = new Date(now);
-      referenceDate.setDate(referenceDate.getDate() - 1);
-      relativeDescription = 'yesterday';
-    } else if (lower.includes('monday')) {
-      // If today is Tuesday (day 2), Monday was 1 day ago
-      const currentDay = now.getDay();
-      let diff = currentDay - 1; // 1 = Monday
-      if (diff <= 0) diff += 7;
-      referenceDate = new Date(now);
-      referenceDate.setDate(referenceDate.getDate() - diff);
-      relativeDescription = 'Monday (' + referenceDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ')';
-    } else if (lower.includes('last tuesday')) {
-      const currentDay = now.getDay(); // 2 = Tuesday
-      let diff = currentDay - 2;
-      diff = diff <= 0 ? diff + 7 : diff + 7;
-      referenceDate = new Date(now);
-      referenceDate.setDate(referenceDate.getDate() - diff);
-      relativeDescription = 'last Tuesday (' + referenceDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ')';
-    } else if (lower.includes('3 november') || lower.includes('november 3') || lower.includes('nov 3')) {
-      referenceDate = new Date(now.getFullYear(), 10, 3); // Month 10 is November (0-indexed)
-      relativeDescription = '3 November';
-    }
-
-    if (referenceDate) {
-      const ry = referenceDate.getFullYear();
-      const rm = String(referenceDate.getMonth() + 1).padStart(2, '0');
-      const rd = String(referenceDate.getDate()).padStart(2, '0');
-      const referenceDateIso = `${ry}-${rm}-${rd}`;
-      const referenceFormatted = referenceDate.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      });
-
-      const d1 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const d2 = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), referenceDate.getDate());
-      const deltaDays = Math.max(0, Math.round((d1.getTime() - d2.getTime()) / (1000 * 60 * 60 * 24)));
-
-      return {
-        currentDateIso,
-        currentDayOfWeek,
-        currentFormatted,
-        referenceDateIso,
-        referenceFormatted,
-        relativeDescription,
-        deltaDays,
-      };
-    }
-
-    return {
-      currentDateIso,
-      currentDayOfWeek,
-      currentFormatted,
-    };
   }
 
   /**
-   * Stage 1: Temporal Grounder & Router
-   * Injects current real-world ISO-8601 clock and day-of-week into the prompt.
-   * Inspects conversation history in MemoryStore, resolves relative date references,
-   * retrieves historical commitments, and outputs structured JSON determining if search is required
-   * and producing 1–3 targeted delta search queries.
+   * Resolves the current clock and any explicit or relative past date mentioned in the prompt.
    */
-  async stage1Route(userMessage: string): Promise<RouterDecision> {
-    const temporalAnchor = this.getTemporalAnchor(userMessage);
+  getTemporalAnchor(userMessage: string): TemporalAnchor {
+    const now = this.simulatedDate ? new Date(this.simulatedDate) : new Date();
+    const currentDayIdx = now.getDay();
+    const currentDayOfWeek =
+      WEEKDAYS[currentDayIdx].charAt(0).toUpperCase() + WEEKDAYS[currentDayIdx].slice(1);
 
-    // Retrieve historical commitment from MemoryStore
-    const turn = this.memory.findTurnByDateOrEntity(userMessage, temporalAnchor.referenceDateIso);
-    let historicalBaseline = '';
-    const resolvedEntities: string[] = [];
+    const currentIsoTimestamp = now.toISOString();
+    const currentDateIso = this.formatIsoDate(now);
+    const currentFormatted = this.formatHumanDate(now);
 
-    if (turn) {
-      historicalBaseline = `Turn Date: ${turn.targetDate}\nConversation: "${turn.conversation.title}"\nFactual Content:\n${turn.message.content}`;
-      if (turn.message.metadata?.entities && Array.isArray(turn.message.metadata.entities)) {
-        resolvedEntities.push(...(turn.message.metadata.entities as string[]));
+    const resolved = this.resolveRelativeDate(userMessage, now, currentDayIdx);
+    if (!resolved) {
+      return {
+        currentIsoTimestamp,
+        currentDateIso,
+        currentDayOfWeek,
+        currentFormatted,
+      };
+    }
+
+    const referenceDateIso = this.formatIsoDate(resolved.date);
+    const referenceFormatted = this.formatHumanDate(resolved.date);
+    const d1 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const d2 = new Date(resolved.date.getFullYear(), resolved.date.getMonth(), resolved.date.getDate());
+    const deltaDays = Math.max(0, Math.round((d1.getTime() - d2.getTime()) / (1000 * 60 * 60 * 24)));
+
+    return {
+      currentIsoTimestamp,
+      currentDateIso,
+      currentDayOfWeek,
+      currentFormatted,
+      referenceDateIso,
+      referenceFormatted,
+      relativeDescription: resolved.description,
+      deltaDays,
+    };
+  }
+
+  private resolveRelativeDate(
+    userMessage: string,
+    now: Date,
+    currentDayIdx: number
+  ): { date: Date; description: string } | null {
+    const lower = userMessage.toLowerCase();
+
+    const dateRegex =
+      /(?:(\d{1,2})(?:st|nd|rd|th)?\s+(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)(?:\s+(\d{4}))?)|(?:(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?)/i;
+    const dateMatch = lower.match(dateRegex);
+
+    if (dateMatch) {
+      const dayNum = parseInt(dateMatch[1] || dateMatch[5], 10);
+      const monthAbbr = (dateMatch[2] || dateMatch[4]).toLowerCase().slice(0, 3);
+      const explicitYear = dateMatch[3] || dateMatch[6];
+      const monthIdx = MONTHS.indexOf(monthAbbr);
+
+      if (monthIdx !== -1 && dayNum >= 1 && dayNum <= 31) {
+        const year = explicitYear ? parseInt(explicitYear, 10) : now.getFullYear();
+        let candidate = new Date(year, monthIdx, dayNum);
+        if (!explicitYear && candidate.getTime() > now.getTime()) {
+          candidate = new Date(year - 1, monthIdx, dayNum);
+        }
+        const capMonth = monthAbbr.charAt(0).toUpperCase() + monthAbbr.slice(1);
+        return { date: candidate, description: `${dayNum} ${capMonth}` };
       }
     }
 
-    const lower = userMessage.toLowerCase();
-    const year = temporalAnchor.currentDateIso.split('-')[0];
+    if (/\btoday\b/.test(lower)) {
+      return { date: new Date(now), description: 'today' };
+    }
 
-    // Benchmark Query 1: Monday CRM Shortlist
-    if (lower.includes('crm') && (lower.includes('shortlist') || lower.includes('pricing') || lower.includes('shipped'))) {
-      const crmEntities = ['HubSpot Sales Hub', 'Pipedrive', 'Salesforce Sales Cloud', 'Freshsales', 'Close CRM'];
+    if (/\byesterday\b/.test(lower)) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - 1);
+      return { date, description: 'yesterday' };
+    }
+
+    const agoMatch = lower.match(/\b(\d+)\s+(day|days|week|weeks)\s+ago\b/);
+    if (agoMatch) {
+      const amount = parseInt(agoMatch[1], 10);
+      const days = agoMatch[2].startsWith('week') ? amount * 7 : amount;
+      const date = new Date(now);
+      date.setDate(date.getDate() - days);
+      return { date, description: `${amount} ${agoMatch[2]} ago` };
+    }
+
+    const weekdayMatches = Array.from(
+      lower.matchAll(/\b(last\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/g)
+    );
+    if (weekdayMatches.length > 0) {
+      // Prefer explicit "last <weekday>" phrasing when multiple weekdays appear in one sentence.
+      const chosen = weekdayMatches.find((m) => Boolean(m[1])) || weekdayMatches[0];
+      const isExplicitLast = Boolean(chosen[1]);
+      const dayName = chosen[2];
+      const targetDayIdx = WEEKDAYS.indexOf(dayName);
+
+      let diff = currentDayIdx - targetDayIdx;
+      if (diff <= 0) {
+        diff += 7;
+      } else if (isExplicitLast) {
+        diff += 7;
+      }
+
+      const date = new Date(now);
+      date.setDate(date.getDate() - diff);
+      const capDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+      const shortDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       return {
-        shouldSearch: true,
-        reasoning: 'User is verifying if pricing or major features changed since Monday for the shortlisted 5 CRM tools.',
-        temporalAnchor,
-        resolvedEntities: resolvedEntities.length > 0 ? resolvedEntities : crmEntities,
-        historicalBaseline:
-          historicalBaseline ||
-          'On Monday (2026-11-09), we shortlisted: HubSpot Sales Hub ($15-$90/seat/mo), Pipedrive ($14-$49/user/mo), Salesforce ($25-$165/user/mo), Freshsales ($9-$59/user/mo), Close CRM ($49-$299/mo).',
-        queries: [
-          `HubSpot Sales Hub Pipedrive pricing changelog update ${year}`,
-          `Salesforce Sales Cloud Freshsales Close CRM pricing announcements ${year}`,
-        ],
+        date,
+        description: `${isExplicitLast ? 'last ' : ''}${capDay} (${shortDate})`,
       };
     }
 
-    // Benchmark Query 2 & 3: 3 November & Last Tuesday Postgres Hosting
-    if (lower.includes('3 november') || lower.includes('postgres') || lower.includes('last tuesday')) {
-      const pgEntities = ['Supabase', 'Neon', 'Crunchy Bridge', 'AWS RDS'];
-      return {
-        shouldSearch: true,
-        reasoning: 'User is verifying what was asked on 3 November / Last Tuesday regarding Postgres hosting and checking if pricing changed.',
-        temporalAnchor,
-        resolvedEntities: resolvedEntities.length > 0 ? resolvedEntities : pgEntities,
-        historicalBaseline:
-          historicalBaseline ||
-          'On Tuesday, 3 November 2026, user asked for a comparison of managed Postgres hosting providers (Supabase, Neon, Crunchy Bridge, AWS RDS). We compared compute pricing and database branching.',
-        queries: [
-          `Supabase Neon Postgres compute pricing changes since November 3 ${year}`,
-          `Crunchy Bridge AWS RDS PostgreSQL pricing changelog ${year}`,
-        ],
-      };
+    return null;
+  }
+
+  /**
+   * Stage 1: Resolve temporal context, query episodic memory, and plan targeted search queries.
+   */
+  async stage1Route(userMessage: string, conversationId?: string): Promise<RouterDecision> {
+    const temporalAnchor = this.getTemporalAnchor(userMessage);
+    const activeConv = conversationId ? this.memory.getConversation(conversationId) : undefined;
+    const recentMessages = activeConv ? activeConv.messages.slice(-6) : [];
+    const sessionHistory =
+      recentMessages.length > 0
+        ? recentMessages
+            .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content.slice(0, 400)}`)
+            .join('\n')
+        : '';
+
+    const match = this.memory.findTurnByDateOrEntity(
+      userMessage,
+      temporalAnchor.referenceDateIso,
+      conversationId
+    );
+    let historicalBaseline = '';
+    let historicalUserPrompt: string | undefined;
+    const resolvedEntities: string[] = [];
+
+    if (match) {
+      const parts: string[] = [
+        `Conversation: "${match.conversation.title}" (Date: ${match.targetDate})`,
+      ];
+      if (match.userMessage) {
+        historicalUserPrompt = match.userMessage.content;
+        parts.push(`User Asked (${match.targetDate}): "${match.userMessage.content}"`);
+      }
+      if (match.assistantMessage) {
+        parts.push(`Assistant Answered (${match.targetDate}):\n${match.assistantMessage.content}`);
+        if (Array.isArray(match.assistantMessage.metadata?.entities)) {
+          resolvedEntities.push(...(match.assistantMessage.metadata.entities as string[]));
+        }
+      }
+      historicalBaseline = parts.join('\n\n');
+    } else if (recentMessages.length > 0) {
+      for (const msg of [...recentMessages].reverse()) {
+        if (Array.isArray(msg.metadata?.entities) && msg.metadata.entities.length > 0) {
+          resolvedEntities.push(...(msg.metadata.entities as string[]));
+          break;
+        }
+      }
     }
 
-    // For arbitrary queries: If OpenAI is available, call it to produce structured decision
+    const defaultTemporalContext = temporalAnchor.referenceDateIso
+      ? `Clock: ${temporalAnchor.currentDateIso} (${temporalAnchor.currentDayOfWeek}) | Resolved "${temporalAnchor.relativeDescription}" -> ${temporalAnchor.referenceDateIso} (${temporalAnchor.deltaDays}d ago)`
+      : `Clock: ${temporalAnchor.currentDateIso} (${temporalAnchor.currentDayOfWeek})`;
+    const defaultHistoricalTopic: string | null = match
+      ? `${match.conversation.title} (${match.targetDate})`
+      : recentMessages.length > 0
+        ? `${activeConv?.title || 'Active thread'} (active session)`
+        : null;
+
+    const [year] = temporalAnchor.currentDateIso.split('-');
+    const monthName = new Date(temporalAnchor.currentIsoTimestamp).toLocaleDateString('en-US', {
+      month: 'long',
+      timeZone: 'UTC',
+    });
+
     if (this.openai) {
       try {
         const completion = await this.openai.chat.completions.create({
@@ -185,16 +260,27 @@ export class SearchAgent {
           messages: [
             {
               role: 'system',
-              content: `You are the Temporal Grounder & Query Router for an agent.
-Current Clock: ${temporalAnchor.currentDateIso} (${temporalAnchor.currentDayOfWeek})
-${temporalAnchor.referenceDateIso ? `Reference Date: ${temporalAnchor.referenceDateIso} (${temporalAnchor.relativeDescription})` : ''}
-${historicalBaseline ? `Historical Commitment in Memory:\n${historicalBaseline}` : ''}
+              content: `You are Stage 1 (Temporal Grounder & Router) for DeltaCheck, a CLI and Web search agent.
+LIVE SYSTEM CLOCK:
+- ISO-8601 Timestamp: ${temporalAnchor.currentIsoTimestamp}
+- Date & Day: ${temporalAnchor.currentDateIso} (${temporalAnchor.currentDayOfWeek})
+${temporalAnchor.referenceDateIso ? `- Resolved Reference Date: ${temporalAnchor.referenceDateIso} (${temporalAnchor.relativeDescription}, ${temporalAnchor.deltaDays} days ago)` : ''}
 
-Output JSON schema:
+${sessionHistory ? `ACTIVE SESSION HISTORY (Recent Turns):\n${sessionHistory}\n\n` : ''}${historicalBaseline ? `EPISODIC MEMORY RECALL:\n${historicalBaseline}\n` : 'EPISODIC MEMORY RECALL: No matching prior turns found.'}
+
+INSTRUCTIONS:
+1. Summarize the resolved temporal context ("temporalContext": string).
+2. Name any recalled prior topic ("historicalTopicFound": string | null).
+3. Decide if web search is required ("requiresSearch": boolean). Greetings/chitchat do not need search. Temporal delta checks, fact verification, pricing, and current updates DO need search.
+4. Extract concrete entity names ("resolvedEntities": string[]), resolving pronouns from ACTIVE SESSION HISTORY or EPISODIC MEMORY when applicable.
+5. Generate 1 to 3 targeted delta search queries ("searchQueries": string[]) checking pricing updates, changelogs, or releases since the reference date (e.g., "[Entity] pricing update ${monthName} ${year}", NOT generic overviews).
+
+Return ONLY valid JSON:
 {
-  "shouldSearch": boolean,
-  "reasoning": string,
-  "queries": string[] (1-3 targeted delta search queries),
+  "temporalContext": string,
+  "historicalTopicFound": string | null,
+  "requiresSearch": boolean,
+  "searchQueries": string[],
   "resolvedEntities": string[]
 }`,
             },
@@ -203,71 +289,128 @@ Output JSON schema:
         });
 
         const parsed = JSON.parse(completion.choices[0]?.message?.content || '{}');
+        const searchQueries = Array.isArray(parsed.searchQueries) ? parsed.searchQueries.slice(0, 3) : [];
+        const requiresSearch = Boolean(parsed.requiresSearch ?? true);
         return {
-          shouldSearch: parsed.shouldSearch ?? true,
-          reasoning: parsed.reasoning || 'Search required to ground query.',
+          temporalContext: parsed.temporalContext || defaultTemporalContext,
+          historicalTopicFound:
+            parsed.historicalTopicFound !== undefined ? parsed.historicalTopicFound : defaultHistoricalTopic,
+          requiresSearch,
+          searchQueries: requiresSearch && searchQueries.length === 0 ? [userMessage] : searchQueries,
           temporalAnchor,
-          resolvedEntities: parsed.resolvedEntities || resolvedEntities,
-          historicalBaseline,
-          queries: Array.isArray(parsed.queries) && parsed.queries.length > 0 ? parsed.queries.slice(0, 3) : [userMessage],
+          resolvedEntities:
+            Array.isArray(parsed.resolvedEntities) && parsed.resolvedEntities.length > 0
+              ? parsed.resolvedEntities
+              : resolvedEntities,
+          historicalBaseline: historicalBaseline || undefined,
+          historicalUserPrompt,
+          sessionHistory: sessionHistory || undefined,
         };
       } catch (err) {
-        console.warn('[Stage1Route] OpenAI router fallback:', (err as Error).message);
+        console.warn('[Stage1Route] OpenAI router unavailable, using heuristic router:', (err as Error).message);
       }
     }
 
-    // General fallback
-    const shouldSearch = !['hi', 'hello', 'hey', 'thanks', 'bye'].includes(lower.trim());
+    // Heuristic offline router built strictly from MemoryStore recall and session context.
+    const lower = userMessage.toLowerCase().trim();
+    const requiresSearch = !GREETING_WORDS.has(lower.replace(/[.!?]+$/, ''));
+    const searchQueries = requiresSearch
+      ? this.buildFallbackQueries(userMessage, resolvedEntities, match?.conversation.title, recentMessages, monthName, year)
+      : [];
+
     return {
-      shouldSearch,
-      reasoning: shouldSearch ? 'Real-world information lookup required.' : 'Conversational message.',
+      temporalContext: defaultTemporalContext,
+      historicalTopicFound: defaultHistoricalTopic,
+      requiresSearch,
+      searchQueries,
       temporalAnchor,
       resolvedEntities,
-      historicalBaseline,
-      queries: shouldSearch ? [userMessage] : [],
+      historicalBaseline: historicalBaseline || undefined,
+      historicalUserPrompt,
+      sessionHistory: sessionHistory || undefined,
     };
   }
 
+  private buildFallbackQueries(
+    userMessage: string,
+    resolvedEntities: string[],
+    recalledTitle: string | undefined,
+    recentMessages: Array<{ role: string; content: string }>,
+    monthName: string,
+    year: string
+  ): string[] {
+    if (resolvedEntities.length > 0) {
+      const queries: string[] = [];
+      const chunkSize = Math.ceil(resolvedEntities.length / 2);
+      const firstGroup = resolvedEntities.slice(0, Math.min(3, chunkSize)).join(' ');
+      const secondGroup = resolvedEntities.slice(Math.min(3, chunkSize)).join(' ');
+
+      queries.push(`${firstGroup} pricing update ${monthName} ${year}`.trim());
+      if (secondGroup.length > 0) {
+        queries.push(`${secondGroup} pricing changelog ${monthName} ${year}`.trim());
+      }
+      return queries;
+    }
+
+    if (recalledTitle) {
+      return [`${recalledTitle} updates ${monthName} ${year}`];
+    }
+
+    if (recentMessages.length > 0) {
+      const hasFollowUpPronoun = /\b(it|its|they|their|them|that|those|these|what about|how about)\b/i.test(
+        userMessage
+      );
+      if (hasFollowUpPronoun) {
+        const lastUserTurn = [...recentMessages].reverse().find((m) => m.role === 'user');
+        if (lastUserTurn) {
+          return [`${lastUserTurn.content} ${userMessage}`];
+        }
+      }
+    }
+
+    return [userMessage];
+  }
+
   /**
-   * Stage 2: Parallel Search Dispatch
-   * Executes search queries concurrently via Promise.all, deduplicates results by canonical URL,
-   * and extracts title, snippet, and publish date.
+   * Stage 2: Execute search queries concurrently and deduplicate canonical URLs.
    */
   async stage2Search(queries: string[]): Promise<SearchResult[]> {
     if (queries.length === 0) return [];
 
-    const searchPromises = queries.map(async (q) => {
-      try {
-        return await this.searchClient.search(q, 4);
-      } catch (err) {
-        console.warn(`[Stage2Search] Failed query "${q}":`, (err as Error).message);
-        return [];
-      }
-    });
+    const nested = await Promise.all(
+      queries.map(async (q) => {
+        try {
+          return await this.searchClient.search(q, 5);
+        } catch (err) {
+          console.warn(`[Stage2Search] Failed query "${q}":`, (err as Error).message);
+          return [];
+        }
+      })
+    );
 
-    const nested = await Promise.all(searchPromises);
-    const flattened = nested.flat();
-    return deduplicateResults(flattened);
+    return deduplicateResults(nested.flat());
   }
 
   /**
-   * Stage 3: Differential Synthesis
-   * Compares retrieved live facts against past conversation turns.
-   * Opens directly with the core verdict in sentence 1 (no filler like "Based on my search..."),
-   * explicitly highlights what remained unchanged vs. what changed,
-   * and embeds clean markdown source citations [1], [2].
+   * Stage 3: Contrast retrieved web sources against recalled prior baselines.
    */
   async stage3Synthesize(
     userMessage: string,
     decision: RouterDecision,
     sources: SearchResult[]
   ): Promise<string> {
-    const { temporalAnchor, historicalBaseline, resolvedEntities } = decision;
+    const { temporalAnchor, historicalBaseline, historicalUserPrompt, resolvedEntities } = decision;
 
-    // Bibliography formatter
-    const sourcesContext = sources.map((s, i) => `[${i + 1}] ${s.title} (${s.domain})\nURL: ${s.url}\nDate: ${s.publishedDate || 'Recent'}\nSnippet: ${s.snippet}`).join('\n\n');
+    const sourcesContext =
+      sources.length > 0
+        ? sources
+            .map(
+              (s, i) =>
+                `[${i + 1}] Title: ${s.title}\nURL: ${s.url}\nPublished: ${s.publishedDate || 'Recent'}\nSnippet: ${s.snippet}`
+            )
+            .join('\n\n')
+        : 'No web search sources retrieved.';
 
-    // 1. If OpenAI is configured, use OpenAI for generative differential synthesis
     if (this.openai) {
       try {
         const completion = await this.openai.chat.completions.create({
@@ -276,139 +419,156 @@ Output JSON schema:
           messages: [
             {
               role: 'system',
-              content: `You are an elite research agent with strict epistemic honesty.
-Current Date: ${temporalAnchor.currentFormatted} (${temporalAnchor.currentDateIso})
-${temporalAnchor.referenceFormatted ? `Comparison Baseline Date: ${temporalAnchor.referenceFormatted}` : ''}
+              content: `You are Stage 3 (Differential Synthesis) for DeltaCheck, a research assistant.
+LIVE CLOCK: ${temporalAnchor.currentFormatted} (${temporalAnchor.currentIsoTimestamp})
+${temporalAnchor.referenceFormatted ? `BASELINE DATE: ${temporalAnchor.referenceFormatted} (${temporalAnchor.relativeDescription})` : ''}
 
-${historicalBaseline ? `HISTORICAL BASELINE FROM MEMORY:\n${historicalBaseline}\n` : ''}
-
-RETRIEVED LIVE SOURCES:
+${decision.sessionHistory ? `ACTIVE SESSION HISTORY (Recent Turns):\n${decision.sessionHistory}\n\n` : ''}${historicalBaseline ? `HISTORICAL BASELINE FROM MEMORY:\n${historicalBaseline}\n` : ''}
+LIVE WEB SOURCES:
 ${sourcesContext}
 
-CRITICAL RULES:
-1. FIRST SENTENCE VERDICT: You MUST open directly with the core answer in sentence 1 without preamble or filler (NEVER start with "Based on my search", "I checked", etc.).
-2. DIFFERENTIAL BREAKDOWN: Explicitly distinguish what remained UNCHANGED vs. what CHANGED or shipped.
-3. NEGATIVE VERIFICATION: If pricing did not change, explicitly confirm: "Pricing remains unchanged at $X [1]". Do NOT invent changes.
-4. CITATIONS: Use inline bracket citations like [1] or [2] referencing the source index.`,
+STRICT OUTPUT CONTRACT:
+1. DIRECT VERDICT IN SENTENCE 1: Answer the user's core question immediately in the first sentence without throat-clearing ("Based on my search...", "I checked...", "Here is what I found...").
+2. DIFFERENTIAL COMPARISON: Explicitly contrast past commitments/baselines vs. what the retrieved sources show today, clearly separating unchanged items from changed or newly shipped items.
+3. EPISTEMIC HONESTY: If no sources were returned or pricing/recommendations did not change, state that explicitly. Never fabricate updates or citations.
+4. CLEAN MARKDOWN CITATIONS: Cite sources cleanly using markdown links [Title](url).`,
             },
             { role: 'user', content: userMessage },
           ],
         });
 
-        const content = completion.choices[0]?.message?.content || '';
-        return content + this.formatSourcesFooter(sources);
+        return (completion.choices[0]?.message?.content || '').trim();
       } catch (err) {
-        console.warn('[Stage3Synthesize] OpenAI synthesis fallback:', (err as Error).message);
+        console.warn('[Stage3Synthesize] OpenAI synthesis unavailable, using heuristic synthesis:', (err as Error).message);
       }
     }
 
-    // 2. High-precision deterministic differential synthesizer (ensures offline benchmark runs pass 100%)
-    const lower = userMessage.toLowerCase();
-
-    // CRM Benchmark Output
-    if (lower.includes('crm') && (lower.includes('shortlist') || lower.includes('pricing') || lower.includes('shipped'))) {
-      let output = `None of the 5 shortlisted CRM tools (HubSpot, Pipedrive, Salesforce, Freshsales, Close) have increased their base subscription pricing since Monday, though HubSpot and Salesforce shipped major AI agent capabilities.\n\n`;
-      output += `### Differential Breakdown (Monday vs. Today)\n\n`;
-      output += `| CRM Tool | Baseline Pricing (Monday) | Current Status (Today) | Feature Diff / Shipped Updates | Source |\n`;
-      output += `| :--- | :--- | :--- | :--- | :--- |\n`;
-      output += `| **HubSpot Sales Hub** | Starter: $15/seat/mo, Pro: $90/seat/mo | **Unchanged** ($15 / $90/seat/mo) | Shipped Breeze AI Copilot integration [1] | [1] |\n`;
-      output += `| **Pipedrive** | Essential: $14, Adv: $29, Pro: $49/user/mo | **Unchanged** ($14 / $29 / $49) | Released Smart Docs 2.0 collaborative editor [2] | [2] |\n`;
-      output += `| **Salesforce Sales Cloud** | Starter: $25, Pro: $100, Enterprise: $165 | **Unchanged** ($25 / $100 / $165) | Deployed Agentforce autonomous sales SDR agents to GA [3] | [3] |\n`;
-      output += `| **Freshsales** | Growth: $9, Pro: $39, Enterprise: $59/user/mo | **Unchanged** ($9 / $39 / $59) | Freddy AI automated lead scoring update [4] | [4] |\n`;
-      output += `| **Close CRM** | Startup: $49/mo (3 seats), Pro: $299/mo | **Unchanged** ($49 / $299) | Enhanced multi-channel sequence engine [5] | [5] |\n\n`;
-      output += `*Summary*: All 5 tools maintained their price tiers since Monday's shortlist; no budget revisions are required for your 20-person team.`;
-      return output + this.formatSourcesFooter(sources);
-    }
-
-    // 3 November Question Check Output
-    if (lower.includes('3 november') || lower.includes('november 3')) {
-      let output = `On 3 November, you asked: *"Can you compare managed Postgres hosting providers with focus on compute pricing and database branching?"*, and our answer remains completely correct and up-to-date today.\n\n`;
-      output += `### Verification of 3 November Recommendations\n\n`;
-      output += `1. **Supabase**: Pro tier remains $25/mo with $10 compute credit; branching preview remains active [1].\n`;
-      output += `2. **Neon**: Autoscaling compute remains $0.16/CU-hour with instant copy-on-write branching [2].\n`;
-      output += `3. **Crunchy Bridge**: Standard tiers continue to start at $35/mo with high-availability failover [3].\n`;
-      output += `4. **AWS RDS**: On-demand db.t4g.micro pricing continues at $0.016/hour [4].\n\n`;
-      output += `*Verdict*: All compute rates, branching capabilities, and architectural trade-offs discussed on 3 November remain accurate with zero modifications.`;
-      return output + this.formatSourcesFooter(sources);
-    }
-
-    // Last Tuesday Postgres Hosting Output
-    if (lower.includes('postgres') || lower.includes('last tuesday')) {
-      let output = `None of the Postgres hosting providers discussed last Tuesday (Supabase, Neon, Crunchy Bridge, AWS RDS) have changed their compute or base subscription pricing since then.\n\n`;
-      output += `### Pricing Delta Matrix (Last Tuesday vs. Today)\n\n`;
-      output += `| Provider | Baseline Pricing (Last Tuesday, Nov 3) | Current Status (Today) | Branching Status | Source |\n`;
-      output += `| :--- | :--- | :--- | :--- | :--- |\n`;
-      output += `| **Supabase** | Pro at $25/mo ($10 compute credit included) | **Unchanged** ($25/mo) | Supported (Pro preview) | [1] |\n`;
-      output += `| **Neon** | Launch $19/mo, Scale $69/mo ($0.16/CU-hr) | **Unchanged** ($0.16/CU-hr) | Instant zero-copy branching | [2] |\n`;
-      output += `| **Crunchy Bridge** | Hobby $10/mo, Standard $35/mo | **Unchanged** ($35/mo) | Ephemeral cluster forks | [3] |\n`;
-      output += `| **AWS RDS (PostgreSQL)** | db.t4g.micro from $0.016/hr (~$11.52/mo) | **Unchanged** ($0.016/hr) | Snapshot / replica clones | [4] |\n\n`;
-      output += `*Verdict*: No pricing changes have occurred across any evaluated Postgres provider over the past 7 days.`;
-      return output + this.formatSourcesFooter(sources);
-    }
-
-    // Default general response
-    return `Verified: Based on retrieved live documentation, all current specifications for ${decision.resolvedEntities.join(', ') || 'the requested topic'} are grounded below.\n\n${this.formatSourcesFooter(sources)}`;
+    return this.synthesizeOffline(userMessage, decision, sources, historicalUserPrompt, resolvedEntities);
   }
 
-  private formatSourcesFooter(sources: SearchResult[]): string {
-    if (sources.length === 0) return '';
-    let footer = `\n\n---\n**Sources Verified:**\n`;
-    sources.forEach((s, i) => {
-      const dateStr = s.publishedDate ? ` · ${s.publishedDate}` : '';
-      footer += `[${i + 1}] [${s.title}](${s.url}) (${s.domain}${dateStr})\n`;
-    });
-    return footer;
-  }
-
-  /**
-   * Main Agent Execution Pipeline: Orchestrates Stage 1 -> Stage 2 -> Stage 3.
-   */
-  async process(userMessage: string, conversationId = 'default-cli-session'): Promise<AgentResponse> {
-    const startTime = Date.now();
-
-    // Stage 1: Temporal Grounder & Router
-    const decision = await this.stage1Route(userMessage);
-
-    // Stage 2: Parallel Search Dispatch
-    let sources: SearchResult[] = [];
-    if (decision.shouldSearch && decision.queries.length > 0) {
-      sources = await this.stage2Search(decision.queries);
+  private synthesizeOffline(
+    userMessage: string,
+    decision: RouterDecision,
+    sources: SearchResult[],
+    historicalUserPrompt: string | undefined,
+    resolvedEntities: string[]
+  ): string {
+    if (!decision.requiresSearch) {
+      return 'Ready. Ask a question or reference a past date to verify details against web sources.';
     }
 
-    // Stage 3: Differential Synthesis
-    const content = await this.stage3Synthesize(userMessage, decision, sources);
+    const anchor = decision.temporalAnchor;
+    const isAskingWhatWasAsked = /\bwhat did i ask\b/i.test(userMessage);
 
-    const latencyMs = Date.now() - startTime;
+    if (sources.length === 0) {
+      if (historicalUserPrompt && isAskingWhatWasAsked) {
+        return `On ${anchor.referenceDateIso || 'that date'}, you asked: "${historicalUserPrompt}". No web search sources were returned in offline mode (${this.searchClient.name}) to verify whether details changed today.`;
+      }
+      if (decision.historicalTopicFound) {
+        return `Found prior thread "${decision.historicalTopicFound}", but ${this.searchClient.name} returned no sources for "${userMessage}". Configure TAVILY_API_KEY or BRAVE_API_KEY in .env for live web verification.`;
+      }
+      return `No search results were returned for "${userMessage}" using the ${this.searchClient.name} client. Configure TAVILY_API_KEY or BRAVE_API_KEY in .env to run live web queries.`;
+    }
 
-    // Record turn in MemoryStore
+    const lines: string[] = [];
+    const entitySummary = resolvedEntities.length > 0 ? resolvedEntities.join(', ') : decision.historicalTopicFound || userMessage;
+
+    if (historicalUserPrompt && isAskingWhatWasAsked) {
+      lines.push(
+        `On ${anchor.referenceDateIso || 'that date'}, you asked: "${historicalUserPrompt}", and the ${sources.length} retrieved sources remain consistent with the stored baseline.`
+      );
+    } else if (decision.historicalTopicFound) {
+      lines.push(
+        `Retrieved ${sources.length} current sources for ${entitySummary} against the ${anchor.referenceDateIso || 'stored'} baseline (${decision.historicalTopicFound}).`
+      );
+    } else {
+      lines.push(`Retrieved ${sources.length} sources for ${entitySummary}.`);
+    }
+
+    lines.push('');
+    lines.push('### Source findings');
+    lines.push('');
+    for (const s of sources) {
+      const dateMeta = s.publishedDate ? ` (${s.publishedDate})` : '';
+      lines.push(`- **${s.title}**${dateMeta}: ${s.snippet} ([${s.domain}](${s.url}))`);
+    }
+
+    return lines.join('\n');
+  }
+
+  private recordTurn(
+    conversationId: string,
+    userMessage: string,
+    content: string,
+    decision: RouterDecision,
+    sources: SearchResult[],
+    latencyMs: number
+  ): void {
+    const nowIso = new Date().toISOString();
     this.memory.addMessage(conversationId, {
       id: `user-${Date.now()}`,
       role: 'user',
       content: userMessage,
-      timestamp: new Date().toISOString(),
+      timestamp: nowIso,
     });
 
     this.memory.addMessage(conversationId, {
-      id: `asst-${Date.now()}`,
+      id: `asst-${Date.now() + 1}`,
       role: 'assistant',
       content,
       timestamp: new Date().toISOString(),
       sources,
-      queries: decision.queries,
+      queries: decision.searchQueries,
       latencyMs,
       metadata: {
         entities: decision.resolvedEntities,
         temporalAnchor: decision.temporalAnchor.currentDateIso,
+        referenceDateIso: decision.temporalAnchor.referenceDateIso,
+        relativeDescription: decision.temporalAnchor.relativeDescription,
+        deltaDays: decision.temporalAnchor.deltaDays,
+        historicalTopicFound: decision.historicalTopicFound,
       },
     });
+  }
 
-    return {
+  async process(userMessage: string, conversationId = 'default-cli-session'): Promise<AgentResponse> {
+    return this.processWithEvents(userMessage, conversationId);
+  }
+
+  async processWithEvents(
+    userMessage: string,
+    conversationId = 'default-cli-session',
+    onEvent?: (event: StreamEvent) => void
+  ): Promise<AgentResponse> {
+    const startTime = Date.now();
+
+    const decision = await this.stage1Route(userMessage, conversationId);
+    onEvent?.({ type: 'stage', stage: 'route', decision });
+
+    let sources: SearchResult[] = [];
+    if (decision.requiresSearch && decision.searchQueries.length > 0) {
+      sources = await this.stage2Search(decision.searchQueries);
+    }
+    onEvent?.({ type: 'stage', stage: 'search', queries: decision.searchQueries, sources });
+
+    const content = await this.stage3Synthesize(userMessage, decision, sources);
+    const latencyMs = Date.now() - startTime;
+
+    this.recordTurn(conversationId, userMessage, content, decision, sources, latencyMs);
+
+    const response: AgentResponse = {
       content,
       sources,
-      queries: decision.queries,
+      queries: decision.searchQueries,
       latencyMs,
       routerDecision: decision,
     };
+
+    const conv = this.memory.getConversation(conversationId);
+    if (conv && onEvent) {
+      onEvent({ type: 'done', response, conversation: conv });
+    }
+
+    return response;
   }
 }
-

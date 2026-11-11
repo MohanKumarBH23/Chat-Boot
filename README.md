@@ -1,291 +1,91 @@
-# ⚡ Antigravity CLI Search Agent
+# DeltaCheck
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg?style=flat&logo=typescript)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-24%2B-green.svg?style=flat&logo=node.js)](https://nodejs.org/)
-[![Tests](https://img.shields.io/badge/Tests-3%2F3%20Passing-brightgreen.svg?style=flat)]()
-[![Architecture](https://img.shields.io/badge/Architecture-Decoupled%203--Stage-orange.svg?style=flat)]()
-[![License](https://img.shields.io/badge/License-MIT-lightgrey.svg?style=flat)](LICENSE)
+DeltaCheck is a TypeScript web search and episodic memory chat agent with a web interface and CLI REPL. It resolves explicit and relative dates deterministically against the system clock, recalls matching prior conversation turns from JSON storage, dispatches search queries in parallel, and synthesizes a source-cited answer comparing past baselines against current results.
 
-> A production-grade CLI chat agent built in TypeScript on Node.js featuring **One Web Search Tool**, **Deterministic Temporal Grounding**, and **Differential Episodic Memory**.
+## Prerequisites
 
-Engineered specifically to solve the hardest problems in agentic search: **Latency Compounding**, **Temporal Amnesia**, and **Hallucination of the Null Hypothesis**.
+- Node.js 20 or newer (tested on v24.15.0)
+- npm 10 or newer
 
----
+## Setup
 
-## 📑 Table of Contents
-
-- [⚡ Quick Start](#-quick-start)
-- [🎯 Evaluation Benchmark Coverage](#-evaluation-benchmark-coverage)
-- [🏗️ Architectural Blueprint](#️-architectural-blueprint)
-  - [The Core Latency Problem: ReAct vs. 3-Stage Pipeline](#the-core-latency-problem-react-vs-3-stage-pipeline)
-  - [Pipeline Stages](#pipeline-stages)
-- [🔍 Web Search Tool Abstraction (`ISearchClient`)](#-web-search-tool-abstraction-isearchclient)
-- [🧠 Episodic Memory & Storage (`MemoryStore`)](#-episodic-memory--storage-memorystore)
-- [💻 Interactive CLI REPL & Telemetry](#-interactive-cli-repl--telemetry)
-- [🧪 Automated Test Suite](#-automated-test-suite)
-- [🔑 Environment Configuration (`.env.example`)](#-environment-configuration-envexample)
-- [📁 Repository Structure](#-repository-structure)
-- [📋 Project Maintenance Guidelines](#-project-maintenance-guidelines)
-- [📄 License](#-license)
-
----
-
-## ⚡ Quick Start
-
-### Prerequisites
-- **Node.js** >= 20.x (tested on v24.15.0)
-- **npm** >= 10.x
-
-### 1. Install Dependencies
 ```bash
 npm install
-```
-
-### 2. Configure Environment (Optional)
-```bash
 cp .env.example .env
-```
-*(Note: If no API keys are provided, the agent uses the built-in deterministic `MockSearchClient` and heuristic differential synthesizer to guarantee that evaluation tests pass 100% offline with zero external network dependencies).*
-
-### 3. Seed Benchmark Episodic Memory
-```bash
 npm run seed
 ```
 
-### 4. Start the Interactive CLI REPL
+Without API keys configured in `.env`, DeltaCheck runs using the offline `MockSearchClient` (fixture results for the seeded CRM and Postgres topics; empty results for unknown queries) and a deterministic fallback synthesizer. Add `OPENAI_API_KEY` plus `TAVILY_API_KEY` or `BRAVE_API_KEY` in `.env` for live web search and LLM synthesis.
+
+## Usage
+
+Start the web interface (default `http://localhost:3000`):
+
 ```bash
 npm run dev
 ```
 
-### 5. Run Automated Benchmark Test Suite
+Start the CLI REPL:
+
 ```bash
+npm run cli
+```
+
+Run the CLI evaluation fixture dry-run:
+
+```bash
+npm run cli -- --eval
+```
+
+Run tests and typechecking:
+
+```bash
+npx tsc --noEmit
 npm test
 ```
 
----
+Build compiled JavaScript to `dist/`:
 
-## 🎯 Evaluation Benchmark Coverage
-
-The agent comes pre-seeded with episodic memory in `./data/agent_memory.json` to ace the evaluation dataset queries:
-
-### 1. Monday CRM Shortlist Delta
-> **User Prompt**: *"On Monday we shortlisted 5 CRM tools for a 20-person sales team. Has any of them changed pricing or shipped something big since?"*
-
-- **Temporal Grounding**: Current date is `Tuesday, Nov 10, 2026`. Monday resolves to `2026-11-09` ($\Delta = 1$ day).
-- **Episodic Recall**: Retrieves conversation `conv-monday-crm-shortlist` and extracts baseline commitments:
-  - HubSpot Sales Hub (\$15–\$90/seat/mo)
-  - Pipedrive (\$14–\$49/user/mo)
-  - Salesforce Sales Cloud (\$25–\$165/user/mo)
-  - Freshsales (\$9–\$59/user/mo)
-  - Close CRM (\$49–\$299/mo)
-- **Targeted Delta Search**: Dispatches parallel queries targeting recent changelogs and announcements rather than generic topic overviews.
-- **Verdict (Sentence 1)**: Directly states that none of the 5 tools changed base pricing, but notes shipped AI agent capabilities (HubSpot Breeze AI, Salesforce Agentforce GA).
-- **Output**: Full markdown comparative matrix with citations `[1]` through `[5]`.
-
-### 2. 3 November Question Check
-> **User Prompt**: *"What did I ask you on 3 November? Is your answer still correct today?"*
-
-- **Temporal Grounding**: Matches turn timestamp `2026-11-03`.
-- **Episodic Recall**: Locates conversation `conv-nov3-postgres-hosting` where the user asked to compare managed Postgres hosting providers (Supabase, Neon, Crunchy Bridge, AWS RDS) with a focus on compute pricing and branching.
-- **Web Verification**: Searches recent compute pricing changelogs.
-- **Verdict (Sentence 1)**: Restates the user's exact 3 November question and confirms that the recommendations, compute rates, and branching trade-offs remain 100% correct today.
-
-### 3. Last Tuesday Postgres Hosting Pricing
-> **User Prompt**: *"Last Tuesday I asked you about Postgres hosting. Has any pricing changed since then?"*
-
-- **Temporal Grounding**: Resolves *"Last Tuesday"* to 7 days prior (`2026-11-03`).
-- **Episodic Recall**: Recalls the Postgres hosting baseline (Supabase Pro \$25/mo, Neon \$0.16/CU-hr, Crunchy Bridge \$35/mo, AWS RDS \$0.016/hr).
-- **Targeted Delta Search**: Dispatches delta queries for compute adjustments since 3 November.
-- **Verdict (Sentence 1)**: Directly confirms that none of the providers changed compute or subscription rates over the past 7 days, backed by a comparative matrix and source citations `[1]` through `[4]`.
-
----
-
-## 🏗️ Architectural Blueprint
-
-### The Core Latency Problem: ReAct vs. 3-Stage Pipeline
-
-Traditional agent architectures use sequential tool calling (ReAct):
-$$\text{Latency}_{\text{ReAct}} = \sum_{i=1}^{K} (T_{\text{model\_call\_}i} + T_{\text{tool\_exec\_}i}) \approx 15\text{s} - 30\text{s}$$
-
-Our **Decoupled 3-Stage Architecture** operates in an $O(1)$ tool execution window:
-
-```
-                              [ User Prompt ]
-                                     │
-                                     ▼
- ┌────────────────────────────────────────────────────────────────────────┐
- │ Stage 1: Temporal Grounder & Router                                    │
- │                                                                        │
- │ • Injects real-world ISO-8601 clock and day-of-week                    │
- │ • Resolves relative dates ("Monday", "3 Nov", "Last Tuesday")          │
- │ • Inspects episodic memory in MemoryStore (agent_memory.json)          │
- │ • Generates 1–3 targeted delta search queries                          │
- └───────────────────────────────────┬────────────────────────────────────┘
-                                     │
-                        Emits: RouterDecision
-                               [Query 1, Query 2]
-                                     │
-                                     ▼
- ┌────────────────────────────────────────────────────────────────────────┐
- │ Stage 2: Parallel Search Dispatch                                      │
- │                                                                        │
- │ • Dispatches queries concurrently via Promise.all                      │
- │ • ISearchClient: TavilySearchClient | BraveSearchClient | MockSearch   │
- │ • Deduplicates results by canonical URL (strips tracking, UTM params)  │
- │ • Extracts title, snippet, domain, and publish date                    │
- └───────────────────────────────────┬────────────────────────────────────┘
-                                     │
-                        Emits: SearchResult[]
-                                     │
-                                     ▼
- ┌────────────────────────────────────────────────────────────────────────┐
- │ Stage 3: Differential Synthesis Engine                                 │
- │                                                                        │
- │ • Sentence 1 Verdict: Direct core answer without preamble              │
- │ • Differential Matrix: Contrasts baseline facts vs. live facts         │
- │ • Null Hypothesis Validation: Confirms stability when diff = 0         │
- │ • Strict Citation Attribution: Inline [1], [2] + verified bibliography │
- └───────────────────────────────────┬────────────────────────────────────┘
-                                     │
-                                     ▼
-                     [ CLI Output with Telemetry ]
-                   Latency (ms) | Queries | Sources
-```
-
----
-
-## 🔍 Web Search Tool Abstraction (`ISearchClient`)
-
-The prompt requires: *"It has one tool: web search."*
-
-To balance production live search with offline evaluation guarantees, we defined a clean `ISearchClient` contract:
-
-```typescript
-export interface ISearchClient {
-  readonly name: string;
-  search(query: string, limit?: number): Promise<SearchResult[]>;
-}
-```
-
-Implemented providers in [`src/search.ts`](./src/search.ts):
-- **`TavilySearchClient`**: Production AI search engine optimized for LLMs with content extraction and published dates.
-- **`BraveSearchClient`**: Independent web index search.
-- **`MockSearchClient`**: Deterministic offline fallback pre-programmed with verified CRM and Postgres hosting facts. Guarantees 100% reproducible evaluation runs without API credits or rate limits.
-
----
-
-## 🧠 Episodic Memory & Storage (`MemoryStore`)
-
-Located in [`src/memory.ts`](./src/memory.ts), `MemoryStore` provides persistent storage to `./data/agent_memory.json`:
-
-- **Turn Retrieval by Calendar Date**: `findTurnByDateOrEntity(query, dateIso)` scans conversation turns for matching ISO dates (`2026-11-09`, `2026-11-03`) or semantic entities.
-- **Commitment Recall**: Extracts historical baselines so the agent compares live web facts against exact prior conversations.
-- **Benchmark Seeding**: Run `npm run seed` to initialize reference conversations.
-
----
-
-## 💻 Interactive CLI REPL & Telemetry
-
-Start the CLI chat agent:
 ```bash
-npm run dev
+npm run build
 ```
 
-### CLI Features:
-- **Interactive REPL**: Natural multi-turn chat with persistent session memory.
-- **Real-Time Telemetry Bar**: Shows total latency (ms), queries dispatched, and verified sources.
-- **Interactive Shortcuts**:
-  - `eval` or `test`: Triggers the 3-benchmark evaluation suite directly inside the REPL.
-  - `exit` or `quit`: Gracefully exits the session.
+## Architecture
 
----
+Each user prompt runs through a three-stage pipeline in `src/agent.ts`:
 
-## 🧪 Automated Test Suite
+1. **Stage 1 — Temporal Grounding & Routing (`stage1Route`)**: Resolves explicit dates (`3 November`), `N days ago`, `yesterday`, and weekday references (`Monday`, `last Tuesday`) in TypeScript, queries `MemoryStore` for matching prior turns by date and token overlap, and emits 1–3 search queries.
+2. **Stage 2 — Parallel Search (`stage2Search`)**: Runs queries concurrently with `Promise.all` through `ISearchClient` (`TavilySearchClient`, `BraveSearchClient`, or `MockSearchClient`) and deduplicates results by canonical URL.
+3. **Stage 3 — Synthesis (`stage3Synthesize`)**: Contrasts recalled baseline turns against retrieved search snippets and returns an answer with markdown citations.
 
-Run the headless benchmark test suite:
-```bash
-npm test
-```
+## Configuration
 
-### Sample Test Output:
+| Variable | Description | Default |
+|---|---|---|
+| `PORT` | HTTP port for the web server (`src/server.ts`) | `3000` |
+| `OPENAI_API_KEY` | OpenAI API key for routing and synthesis | None (heuristic fallback) |
+| `OPENAI_MODEL` | OpenAI chat completion model | `gpt-4o` |
+| `SEARCH_PROVIDER` | Search backend (`tavily`, `brave`, `mock`) | `tavily` |
+| `TAVILY_API_KEY` | Tavily API key | None (mock fallback) |
+| `BRAVE_API_KEY` | Brave Search API key | None |
+| `STORAGE_PATH` | Path to JSON conversation history | `./data/agent_memory.json` |
+
+## Repository Layout
+
 ```text
-=== RUNNING BENCHMARK EVALUATION TEST SUITE ===
-
-[1/3] Benchmark 1: Monday CRM Shortlist Delta
-Query: "On Monday we shortlisted 5 CRM tools for a 20-person sales team. Has any of them changed pricing or shipped something big since?"
-↳ Latency: 62ms | Queries Dispatched: 2 | Sources Verified: 5
-Queries: ["HubSpot Sales Hub Pipedrive pricing changelog update 2026", "Salesforce Sales Cloud Freshsales Close CRM pricing announcements 2026"]
-
-Agent Verdict:
-None of the 5 shortlisted CRM tools (HubSpot, Pipedrive, Salesforce, Freshsales, Close) have increased their base subscription pricing since Monday, though HubSpot and Salesforce shipped major AI agent capabilities.
-
-[2/3] Benchmark 2: 3 November Question Check
-Query: "What did I ask you on 3 November? Is your answer still correct today?"
-↳ Latency: 1ms | Queries Dispatched: 2 | Sources Verified: 4
-Queries: ["Supabase Neon Postgres compute pricing changes since November 3 2026", "Crunchy Bridge AWS RDS PostgreSQL pricing changelog 2026"]
-
-Agent Verdict:
-On 3 November, you asked: "Can you compare managed Postgres hosting providers with focus on compute pricing and database branching?", and our answer remains completely correct and up-to-date today.
-
-[3/3] Benchmark 3: Last Tuesday Postgres Hosting Pricing
-Query: "Last Tuesday I asked you about Postgres hosting. Has any pricing changed since then?"
-↳ Latency: 2ms | Queries Dispatched: 2 | Sources Verified: 4
-Queries: ["Supabase Neon Postgres compute pricing changes since November 3 2026", "Crunchy Bridge AWS RDS PostgreSQL pricing changelog 2026"]
-
-Agent Verdict:
-None of the Postgres hosting providers discussed last Tuesday (Supabase, Neon, Crunchy Bridge, AWS RDS) have changed their compute or base subscription pricing since then.
-
-Benchmark Suite Result: 3/3 Passed Successfully!
+src/
+  types.ts      Core TypeScript interfaces
+  search.ts     Tavily, Brave, and Mock search clients + URL canonicalization
+  memory.ts     JSON-backed MemoryStore with date/entity turn retrieval
+  seed.ts       Seeds sample CRM and Postgres baseline conversations
+  agent.ts      Three-stage pipeline (route, parallel search, synthesize)
+  index.ts      CLI REPL and --eval runner
+  server.ts     Node HTTP + SSE server for the web UI
+  ui/           Frontend HTML, CSS, and client JS
+test/
+  agent.test.ts Unit and pipeline tests using node:test
 ```
 
----
+## License
 
-## 🔑 Environment Configuration (`.env.example`)
-
-| Variable | Description | Default | Required? |
-|---|---|---|---|
-| `OPENAI_API_KEY` | OpenAI API Key for generative synthesis | None | Optional (falls back to deterministic synthesizer) |
-| `OPENAI_MODEL` | OpenAI Model Name | `gpt-4o` | Optional |
-| `SEARCH_PROVIDER` | Active search provider (`"tavily"`, `"brave"`, `"mock"`) | `tavily` | Optional |
-| `TAVILY_API_KEY` | Tavily Search API Key | None | Optional (falls back to mock client) |
-| `BRAVE_API_KEY` | Brave Search API Key | None | Optional |
-| `STORAGE_PATH` | Path to persistent episodic memory JSON file | `./data/agent_memory.json` | Optional |
-
----
-
-## 📁 Repository Structure
-
-```
-├── .env.example              # Documented environment variables
-├── package.json              # Scripts: dev, start, seed, test, build
-├── tsconfig.json             # ES2022, NodeNext, strict typing
-├── DESIGN.md                 # In-depth architectural design specification & latency analysis
-├── README.md                 # Comprehensive GitHub documentation (this file)
-├── data/
-│   └── agent_memory.json     # Persistent episodic memory storage
-├── src/
-│   ├── types.ts              # Core TypeScript interfaces & contracts
-│   ├── search.ts             # Search client abstraction (Tavily, Brave, Mock) & URL deduplication
-│   ├── memory.ts             # MemoryStore with turn retrieval & JSON persistence
-│   ├── agent.ts              # Decoupled 3-Stage Pipeline (Route ➔ Parallel Search ➔ Synthesize)
-│   ├── seed.ts               # Pre-populates Monday CRM & 3 November Postgres conversations
-│   └── index.ts              # Interactive CLI REPL with telemetry & --test runner
-└── dist/                     # Clean compiled JavaScript output (npm run build)
-```
-
----
-
-## 📋 Project Maintenance Guidelines
-
-> **IMPORTANT**: This `README.md` is the canonical documentation for the repository.
-> 
-> When modifying this project:
-> 1. Any change to `src/types.ts`, `src/agent.ts`, or `src/search.ts` must be reflected in the Architecture and Configuration sections of this README.
-> 2. Ensure `npx tsc --noEmit` and `npm test` continue to pass before committing changes.
-> 3. Update the latency benchmarks and verification table if pipeline performance characteristics change.
-
----
-
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE).
+MIT — see [LICENSE](LICENSE).

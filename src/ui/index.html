@@ -3,181 +3,171 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Antigravity Search Agent</title>
-  <link rel="stylesheet" href="/style.css">
+  <title>DeltaCheck</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <!-- Markdown parser -->
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Spline+Sans+Mono:wght@400;500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <div class="app-layout">
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
+  <div class="app-shell">
+    <div class="sidebar-scrim" id="sidebarScrim" hidden></div>
+
+    <aside class="sidebar" id="sidebar" aria-label="Conversation history">
       <div class="sidebar-header">
-        <div class="brand">
-          <div class="brand-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              <circle cx="11" cy="11" r="3" fill="currentColor"></circle>
-            </svg>
-          </div>
-          <div class="brand-text">
-            <span class="brand-title">Antigravity</span>
-            <span class="brand-subtitle">Web Search Agent</span>
-          </div>
-        </div>
-        <button class="btn-icon" id="newChatBtn" title="New Chat">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
+        <a href="/" class="brand" id="brandHomeLink">
+          <svg class="brand-mark" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <rect x="2" y="2" width="14" height="14" rx="1.5" stroke="currentColor" stroke-width="1.5"></rect>
+            <line x1="6.5" y1="5" x2="6.5" y2="13" stroke="#ffcf48" stroke-width="1.5"></line>
+            <line x1="11.5" y1="5" x2="11.5" y2="13" stroke="#4cc9f0" stroke-width="1.5"></line>
           </svg>
+          <span class="brand-name">DeltaCheck</span>
+        </a>
+        <button class="compact-btn" id="newChatBtn" type="button" title="New thread" aria-label="New thread">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+            <path d="M12 5v14M5 12h14"></path>
+          </svg>
+          <span>New</span>
         </button>
       </div>
 
-      <!-- Benchmark Evaluation Shortcuts -->
-      <div class="benchmark-section">
-        <div class="section-title">
-          <span>EVALUATION BENCHMARKS</span>
-          <span class="badge">Dataset</span>
-        </div>
-        <div class="benchmark-list">
-          <button class="bench-card" data-bench="crm-shortlist">
-            <div class="bench-icon crm">💼</div>
-            <div class="bench-info">
-              <span class="bench-title">Monday CRM Shortlist</span>
-              <span class="bench-sub">5 CRM tools · 20-person team</span>
-            </div>
-          </button>
-
-          <button class="bench-card" data-bench="nov-3-answer">
-            <div class="bench-icon nov3">📅</div>
-            <div class="bench-info">
-              <span class="bench-title">3 November Answer Check</span>
-              <span class="bench-sub">Temporal memory & delta validation</span>
-            </div>
-          </button>
-
-          <button class="bench-card" data-bench="postgres-hosting">
-            <div class="bench-icon pg">🐘</div>
-            <div class="bench-info">
-              <span class="bench-title">Last Tuesday Postgres</span>
-              <span class="bench-sub">Compute pricing delta since then</span>
-            </div>
-          </button>
+      <div class="sidebar-scroll">
+        <div class="sidebar-section">
+          <div class="section-label">
+            <span>Threads</span>
+            <span class="count-meta" id="threadCount">0</span>
+          </div>
+          <nav class="threads-list" id="conversationsList" aria-label="Saved threads"></nav>
         </div>
       </div>
 
-      <!-- Conversations List -->
-      <div class="conversations-section">
-        <div class="section-title">CONVERSATIONS</div>
-        <div class="conversations-list" id="conversationsList">
-          <!-- Dynamic conversation items -->
-        </div>
-      </div>
-
-      <!-- System Telemetry Footer -->
       <div class="sidebar-footer">
-        <div class="telemetry-pill">
-          <span class="dot live"></span>
-          <span id="telemetryProvider">DuckDuckGo</span>
-          <span class="divider">/</span>
-          <span id="telemetryLlm">Gemini 2.0 Flash</span>
+        <div class="status-row">
+          <span class="status-dot" id="statusDot" aria-hidden="true"></span>
+          <span class="status-text" id="telemetryText">Connecting</span>
         </div>
+        <span class="clock-meta" id="sidebarClock">--</span>
       </div>
     </aside>
 
-    <!-- Main Chat Workspace -->
-    <main class="chat-container">
-      <header class="chat-header">
-        <div class="chat-header-info">
-          <h2 id="currentChatTitle">New Conversation</h2>
-          <div class="header-tags" id="headerTags">
-            <span class="temporal-tag" id="currentDateBadge">Today: Nov 10, 2026</span>
-          </div>
-        </div>
-        <div class="chat-header-actions">
-          <button class="btn-outline" id="viewSearchLogsBtn" title="Inspect Search Engine Logs">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+    <main class="workspace">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="compact-btn mobile-only" id="menuToggleBtn" type="button" aria-label="Toggle history">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+              <path d="M4 7h16M4 12h16M4 17h16"></path>
             </svg>
-            Search Inspector
+            <span>History</span>
+          </button>
+          <h1 class="thread-title" id="currentChatTitle">New thread</h1>
+          <span class="date-stamp" id="currentDateBadge">--</span>
+        </div>
+        <div class="topbar-actions">
+          <button class="secondary-btn" id="viewSourcesBtn" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"></circle>
+              <path d="M20 20l-3.5-3.5"></path>
+            </svg>
+            <span>Sources</span>
+            <span class="count-meta" id="sourcesCountBadge">0</span>
           </button>
         </div>
       </header>
 
-      <!-- Messages Stream -->
-      <div class="messages-viewport" id="messagesViewport">
-        <div class="welcome-banner" id="welcomeBanner">
-          <div class="welcome-icon">⚡</div>
-          <h1>World-Class Web Search Agent</h1>
-          <p>Answers fast, gets things right, grounded with citations and episodic temporal memory.</p>
+      <div class="stream-scroll" id="messagesViewport">
+        <div class="reading-column">
+          <section class="empty-state" id="welcomeBanner">
+            <div class="continuum-ruler" aria-hidden="true">
+              <span class="ruler-tick tick-cyan">
+                <span class="tick-bar"></span>
+                <span>2026-11-03 · -8d</span>
+              </span>
+              <span class="ruler-tick tick-sodium">
+                <span class="tick-bar doubled"></span>
+                <span>2026-11-09 · -2d</span>
+              </span>
+              <span class="ruler-tick tick-green">
+                <span class="tick-bar"></span>
+                <span>Live check</span>
+              </span>
+            </div>
 
-          <div class="quick-prompts">
-            <div class="quick-prompts-title">Try evaluation benchmark questions:</div>
-            <button class="prompt-chip" data-query="On Monday we shortlisted 5 CRM tools for a 20-person sales team. Has any of them changed pricing or shipped something big since?">
-              "On Monday we shortlisted 5 CRM tools for a 20-person sales team. Has any of them changed pricing or shipped something big since?"
-            </button>
-            <button class="prompt-chip" data-query="What did I ask you on 3 November? Is your answer still correct today?">
-              "What did I ask you on 3 November? Is your answer still correct today?"
-            </button>
-            <button class="prompt-chip" data-query="Last Tuesday I asked you about Postgres hosting. Has any pricing changed since then?">
-              "Last Tuesday I asked you about Postgres hosting. Has any pricing changed since then?"
-            </button>
-          </div>
-        </div>
+            <h2 class="empty-title">Verify what changed since a past thread</h2>
+            <p class="empty-copy">
+              Ask a question or anchor to a calendar date such as Monday or 3 November. DeltaCheck recalls the stored baseline turn and checks current web sources in parallel.
+            </p>
 
-        <div class="messages-list" id="messagesList">
-          <!-- Chat messages rendered dynamically -->
-        </div>
+            <div class="prompt-group">
+              <div class="section-label">Sample checks</div>
+              <div class="prompt-list">
+                <button class="prompt-row" type="button" data-query="On Monday we shortlisted 5 CRM tools for a 20-person sales team. Has any of them changed pricing or shipped something big since?">
+                  <span class="prompt-row-text">Check Monday CRM shortlist for pricing or release changes</span>
+                  <span class="delta-stamp">2026-11-09 · -2d</span>
+                </button>
+                <button class="prompt-row" type="button" data-query="What did I ask you on 3 November? Is your answer still correct today?">
+                  <span class="prompt-row-text">Recall 3 November question and verify against current sources</span>
+                  <span class="delta-stamp">2026-11-03 · -8d</span>
+                </button>
+                <button class="prompt-row" type="button" data-query="Last Tuesday I asked you about Postgres hosting. Has any pricing changed since then?">
+                  <span class="prompt-row-text">Compare last Tuesday Postgres hosting compute rates</span>
+                  <span class="delta-stamp">2026-11-03 · -8d</span>
+                </button>
+              </div>
+            </div>
+          </section>
 
-        <!-- Live Agent Activity Banner -->
-        <div class="agent-activity" id="agentActivity" style="display: none;">
-          <div class="activity-spinner"></div>
-          <div class="activity-details">
-            <span class="activity-status" id="activityStatusText">Planning search strategy...</span>
-            <div class="activity-tags" id="activityTags"></div>
+          <div class="messages-list" id="messagesList" aria-live="polite"></div>
+
+          <div class="activity-card" id="agentActivity" hidden>
+            <div class="activity-row">
+              <span class="activity-label" id="activityStatusText">Resolving temporal reference</span>
+              <span class="delta-stamp" id="activityRefBadge" hidden></span>
+            </div>
+            <div class="activity-queries" id="activityTags"></div>
           </div>
         </div>
       </div>
 
-      <!-- Input Bar -->
-      <footer class="input-container">
-        <form id="chatForm" class="chat-form">
-          <div class="input-wrapper">
+      <footer class="composer-bar">
+        <form id="chatForm" class="composer-form">
+          <div class="composer-box">
             <textarea
               id="messageInput"
-              placeholder="Ask anything... Web search, pricing changes, or past conversation queries"
+              placeholder="Ask a question or reference a date"
               rows="1"
-              autofocus
+              aria-label="Prompt"
             ></textarea>
-            <button type="submit" id="sendBtn" class="send-button" title="Send message">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <line x1="22" y1="2" x2="11" y2="13"></line>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            <button type="submit" id="sendBtn" class="send-btn" title="Send" aria-label="Send prompt">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 19V5M5 12l7-7 7 7"></path>
               </svg>
             </button>
           </div>
-          <div class="input-helper">
-            <span>Press <kbd>Enter</kbd> to send, <kbd>Shift+Enter</kbd> for new line</span>
-            <span class="helper-tool">Tool: Web Search Grounding</span>
+          <div class="composer-meta">
+            <span class="key-hint">
+              <kbd class="keycap">Enter</kbd> to send
+              <span class="meta-sep">·</span>
+              <kbd class="keycap">Shift</kbd> <kbd class="keycap">Enter</kbd> new line
+            </span>
+            <span class="tool-meta" id="composerToolLabel">Web search</span>
           </div>
         </form>
       </footer>
     </main>
   </div>
 
-  <!-- Search Inspector Modal -->
-  <div class="modal-backdrop" id="inspectorModal" style="display: none;">
-    <div class="modal-content">
+  <div class="modal-backdrop" id="inspectorModal" hidden role="dialog" aria-modal="true" aria-labelledby="inspectorTitle">
+    <div class="modal-panel">
       <div class="modal-header">
-        <h3>Web Search Engine Inspector</h3>
-        <button class="btn-close" id="closeInspectorBtn">&times;</button>
+        <h2 class="modal-title" id="inspectorTitle">Sources &amp; query log</h2>
+        <button class="icon-btn" id="closeInspectorBtn" type="button" aria-label="Close panel">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+            <path d="M18 6L6 18M6 6l12 12"></path>
+          </svg>
+        </button>
       </div>
       <div class="modal-body" id="inspectorContent">
-        <p class="empty-state">No search operations executed yet in this session.</p>
+        <p class="empty-inspector">No sources retrieved in the current thread.</p>
       </div>
     </div>
   </div>
@@ -185,4 +175,3 @@
   <script src="/app.js"></script>
 </body>
 </html>
-

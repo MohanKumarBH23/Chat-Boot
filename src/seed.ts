@@ -3,10 +3,6 @@ import { MemoryStore } from './memory.js';
 import { Conversation } from './types.js';
 
 export function getBenchmarkSeedData(): Conversation[] {
-  // Anchored relative to Tuesday, 10 November 2026
-  // Monday = 2026-11-09
-  // 3 November (Last Tuesday) = 2026-11-03
-
   const mondayCrmConv: Conversation = {
     id: 'conv-monday-crm-shortlist',
     title: 'Shortlist 5 CRM tools for 20-person sales team',
@@ -17,13 +13,13 @@ export function getBenchmarkSeedData(): Conversation[] {
       {
         id: 'msg-crm-u1',
         role: 'user',
-        content: 'On Monday we shortlisted 5 CRM tools for a 20-person sales team. Can you summarize their pricing tiers and capabilities?',
+        content: 'Can you shortlist 5 CRM tools for a 20-person sales team and summarize their pricing tiers and capabilities?',
         timestamp: '2026-11-09T09:30:00.000Z',
       },
       {
         id: 'msg-crm-a1',
         role: 'assistant',
-        content: `Here is the shortlist of 5 CRM tools evaluated for your 20-person sales team, along with verified baseline pricing and capabilities as of Monday, 9 November 2026:
+        content: `Here is the shortlist of 5 CRM tools evaluated for your 20-person sales team as of Monday, 9 November 2026:
 
 1. **HubSpot Sales Hub**
    - **Pricing**: Starter is $15/seat/month; Professional is $90/seat/month billed annually.
@@ -55,7 +51,7 @@ export function getBenchmarkSeedData(): Conversation[] {
 
   const nov3PostgresConv: Conversation = {
     id: 'conv-nov3-postgres-hosting',
-    title: 'Managed Postgres Hosting Comparison',
+    title: 'Managed Postgres hosting comparison',
     createdAt: '2026-11-03T14:15:00.000Z',
     updatedAt: '2026-11-03T14:20:00.000Z',
     scenario: 'postgres-hosting',
@@ -98,24 +94,33 @@ export function getBenchmarkSeedData(): Conversation[] {
   return [mondayCrmConv, nov3PostgresConv];
 }
 
-export function runSeed(customPath?: string): void {
-  const store = new MemoryStore(customPath);
-  const data = getBenchmarkSeedData();
-  for (const conv of data) {
-    // Upsert conversation
-    const existing = store.getConversation(conv.id);
-    if (!existing) {
-      store.createConversation(conv.id, conv.title, conv.scenario);
-      for (const msg of conv.messages) {
-        store.addMessage(conv.id, msg);
-      }
-    }
+export function seedDataset(customStore?: MemoryStore, logOutput = true): boolean {
+  const store = customStore ?? new MemoryStore();
+  const seeded = store.ensureSeeded(getBenchmarkSeedData);
+  if (seeded && logOutput) {
+    console.log(`[Seed] Seeded ${getBenchmarkSeedData().length} conversations into ${store.filePath}`);
   }
-  console.log(`[Seed] Successfully seeded ${data.length} benchmark conversations into ${store['filePath']}`);
+  return seeded;
 }
 
-// Execute if run directly
 if (process.argv[1]?.endsWith('seed.ts') || process.argv[1]?.endsWith('seed.js')) {
   runSeed();
 }
 
+export function runSeed(customPath?: string): void {
+  const store = new MemoryStore(customPath);
+  let added = 0;
+  for (const conv of getBenchmarkSeedData()) {
+    if (!store.getConversation(conv.id)) {
+      store.createConversation(conv.id, conv.title, conv.scenario, {
+        createdAt: conv.createdAt,
+        updatedAt: conv.updatedAt,
+      });
+      for (const msg of conv.messages) {
+        store.addMessage(conv.id, msg, true);
+      }
+      added++;
+    }
+  }
+  console.log(`[Seed] Seeded ${added} conversation(s) into ${store.filePath}`);
+}

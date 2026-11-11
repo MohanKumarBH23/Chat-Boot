@@ -1,196 +1,234 @@
-import assert from 'assert';
-import { TemporalReasoner } from '../src/agent/temporal.js';
-import { ConversationStore } from '../src/memory/store.js';
-import { WebSearchTool } from '../src/tools/search/index.js';
-import { SearchAgent } from '../src/agent/index.js';
-import { AgentStreamEvent } from '../src/types/index.js';
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import http from 'node:http';
+import os from 'node:os';
+import path from 'node:path';
+import { PassThrough } from 'node:stream';
+import { canonicalizeUrl, deduplicateResults, MockSearchClient } from '../src/search.js';
+import { MemoryStore } from '../src/memory.js';
+import { SearchAgent } from '../src/agent.js';
+import { getBenchmarkSeedData } from '../src/seed.js';
+import { createAppServer } from '../src/server.js';
 
-console.log('🧪 Running Antigravity Search Agent Test Suite...\n');
-
-async function runTests() {
-  let passed = 0;
-  let failed = 0;
-
-  async function test(name: string, fn: () => Promise<void> | void) {
-    try {
-      await fn();
-      console.log(`  ✅ PASS: ${name}`);
-      passed++;
-    } catch (err) {
-      console.error(`  ❌ FAIL: ${name}`);
-      console.error(err);
-      failed++;
-    }
-  }
-
-  // --- 1. Temporal Reasoner Tests ---
-  console.log('1. Temporal Reasoner & Date Anchor Tests:');
-  const anchorDate = new Date('2026-11-10T12:00:00Z'); // Tuesday Nov 10, 2026
-  const temporal = new TemporalReasoner(anchorDate);
-
-  await test('Resolves "today" to current anchor date', () => {
-    const ctx = temporal.buildTemporalContext('Is this still valid today?');
-    assert.strictEqual(ctx.currentDateIso, '2026-11-10');
-  });
-
-  await test('Resolves "Monday" to previous day (Nov 9, 2026)', () => {
-    const ctx = temporal.buildTemporalContext('On Monday we shortlisted 5 CRM tools.');
-    assert(ctx.referenceDateIso, 'Reference date must be defined');
-    assert.strictEqual(ctx.referenceDateIso, '2026-11-09');
-    assert.strictEqual(ctx.deltaDays, 1);
-  });
-
-  await test('Resolves "3 November" to 2026-11-03', () => {
-    const ctx = temporal.buildTemporalContext('What did I ask you on 3 November?');
-    assert(ctx.referenceDateIso, 'Reference date must be defined');
-    assert.strictEqual(ctx.referenceDateIso, '2026-11-03');
-    assert.strictEqual(ctx.deltaDays, 7);
-  });
-
-  await test('Resolves "last Tuesday" to 7 days prior (2026-11-03)', () => {
-    const ctx = temporal.buildTemporalContext('Last Tuesday I asked you about Postgres hosting.');
-    assert(ctx.referenceDateIso, 'Reference date must be defined');
-    assert.strictEqual(ctx.referenceDateIso, '2026-11-03');
-  });
-
-  // --- 2. Memory Store & Benchmark Seeding Tests ---
-  console.log('\n2. Episodic Memory Store & Benchmark Datasets Tests:');
-  const store = new ConversationStore('./test-data');
-
-  await test('Pre-seeds evaluation benchmark conversations', () => {
-    const convs = store.listConversations();
-    assert(convs.length >= 3, `Expected at least 3 conversations, found ${convs.length}`);
-    const crmConv = convs.find((c) => c.benchmarkScenario === 'crm-shortlist');
-    const nov3Conv = convs.find((c) => c.benchmarkScenario === 'nov-3-answer');
-    const pgConv = convs.find((c) => c.benchmarkScenario === 'postgres-hosting');
-
-    assert(crmConv, 'Monday CRM shortlist scenario must exist');
-    assert(nov3Conv, '3 November query scenario must exist');
-    assert(pgConv, 'Last Tuesday Postgres scenario must exist');
-  });
-
-  await test('Finds relevant past turn for "3 November" query', () => {
-    const found = store.findRelevantTurn('fresh-conv', 'What did I ask you on 3 November?', '2026-11-03');
-    assert(found, 'Should find turn from 3 November');
-    assert(found.message.content.includes('vector'), 'Should match vector db response');
-  });
-
-  await test('Finds relevant past turn for "CRM tools" keyword', () => {
-    const found = store.findRelevantTurn('fresh-conv', 'Has any CRM tool changed pricing?');
-    assert(found, 'Should find CRM conversation turn');
-    assert(found.message.content.includes('HubSpot'), 'Should contain HubSpot in content');
-  });
-
-  // --- 3. Web Search Tool & Parallel Deduplication Tests ---
-  console.log('\n3. Web Search Tool & Parallel Deduplication Tests:');
-  const searchTool = new WebSearchTool('mock');
-
-  await test('Executes single query search using mock provider', async () => {
-    const results = await searchTool.search('CRM tools pricing 2026');
-    assert(results.length > 0, 'Must return results');
-    assert(results[0].title.length > 0, 'Result must have title');
-    assert(results[0].url.startsWith('http'), 'Result must have URL');
-  });
-
-  await test('Executes parallel queries with URL deduplication', async () => {
-    const queries = [
-      'HubSpot CRM pricing changes 2026',
-      'Salesforce Sales Cloud release notes 2026',
-      'HubSpot CRM pricing changes 2026', // duplicate query to test dedup
-    ];
-    const { results, metrics } = await searchTool.searchParallel(queries);
-    assert(results.length > 0, 'Must return deduplicated results');
-    assert(metrics.length === 2, 'Metrics must record 2 unique queries');
-  });
-
-  // --- 4. End-to-End Search Agent Stream Test ---
-  console.log('\n4. End-to-End Search Agent Orchestration Test:');
-  const agent = new SearchAgent({
-    conversationStore: store,
-    webSearchTool: searchTool,
-    temporalReasoner: temporal,
-  });
-
-  await test('Streams complete response for Monday CRM shortlist evaluation prompt', async () => {
-    const conv = store.createConversation('Evaluation Test Chat');
-    const prompt = 'On Monday we shortlisted 5 CRM tools for a 20-person sales team. Has any of them changed pricing or shipped something big since?';
-
-    const events: AgentStreamEvent[] = [];
-    for await (const event of agent.chatStream(conv.id, prompt)) {
-      events.push(event);
-    }
-
-    // Verify key phases occurred
-    const planEvent = events.find((e) => e.type === 'plan');
-    const sourcesEvent = events.find((e) => e.type === 'sources_ready');
-    const completeEvent = events.find((e) => e.type === 'complete');
-
-    assert(planEvent, 'Must emit plan event');
-    assert(sourcesEvent, 'Must emit sources_ready event');
-    assert(completeEvent, 'Must emit complete event');
-
-    if (completeEvent && completeEvent.type === 'complete') {
-      const msg = completeEvent.message;
-      assert(msg.sources && msg.sources.length > 0, 'Assistant message must have grounding sources');
-      assert(msg.metrics && msg.metrics.totalDurationMs > 0, 'Assistant message must contain performance metrics');
-      assert(msg.content.includes('[1]'), 'Assistant response must contain inline citations [1]');
-    }
-  });
-
-  await test('Streams complete response for 3 November evaluation prompt', async () => {
-    const conv = store.createConversation('Nov 3 Check Chat');
-    const prompt = 'What did I ask you on 3 November? Is your answer still correct today?';
-
-    const events: AgentStreamEvent[] = [];
-    for await (const event of agent.chatStream(conv.id, prompt)) {
-      events.push(event);
-    }
-
-    const planEvent = events.find((e) => e.type === 'plan');
-    const completeEvent = events.find((e) => e.type === 'complete');
-
-    assert(planEvent, 'Must emit plan event');
-    assert(completeEvent, 'Must emit complete event');
-
-    if (completeEvent && completeEvent.type === 'complete') {
-      const msg = completeEvent.message;
-      assert(msg.content.length > 0, 'Must produce response');
-      assert(msg.sources && msg.sources.length > 0, 'Must have grounding sources');
-    }
-  });
-
-  await test('Streams complete response for Last Tuesday Postgres evaluation prompt', async () => {
-    const conv = store.createConversation('Postgres Check Chat');
-    const prompt = 'Last Tuesday I asked you about Postgres hosting. Has any pricing changed since then?';
-
-    const events: AgentStreamEvent[] = [];
-    for await (const event of agent.chatStream(conv.id, prompt)) {
-      events.push(event);
-    }
-
-    const planEvent = events.find((e) => e.type === 'plan');
-    const completeEvent = events.find((e) => e.type === 'complete');
-
-    assert(planEvent, 'Must emit plan event');
-    assert(completeEvent, 'Must emit complete event');
-
-    if (completeEvent && completeEvent.type === 'complete') {
-      const msg = completeEvent.message;
-      assert(msg.content.length > 0, 'Must produce response');
-      assert(msg.sources && msg.sources.length > 0, 'Must have grounding sources');
-    }
-  });
-
-  console.log(`\n========================================`);
-  console.log(`Summary: ${passed} passed, ${failed} failed`);
-  console.log(`========================================\n`);
-
-  if (failed > 0) {
-    process.exit(1);
-  }
+function createTempStore(): { store: MemoryStore; dir: string } {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deltacheck-test-'));
+  const file = path.join(dir, 'memory.json');
+  const store = new MemoryStore(file);
+  return { store, dir };
 }
 
-runTests().catch((err) => {
-  console.error('Fatal test error:', err);
-  process.exit(1);
+test('canonicalizeUrl strips tracking query params, hashes, and trailing slashes', () => {
+  assert.equal(
+    canonicalizeUrl('https://www.hubspot.com/pricing/sales-hub/?utm_source=x&ref=abc#plans'),
+    'https://www.hubspot.com/pricing/sales-hub'
+  );
+  assert.equal(
+    canonicalizeUrl('https://neon.tech/pricing?plan=scale&fbclid=123'),
+    'https://neon.tech/pricing?plan=scale'
+  );
+});
+
+test('deduplicateResults collapses duplicate canonical URLs and populates domain', () => {
+  const results = deduplicateResults([
+    {
+      title: 'Neon A',
+      url: 'https://neon.tech/pricing/?utm_medium=cpc',
+      snippet: 'First',
+      canonicalUrl: '',
+      domain: '',
+    },
+    {
+      title: 'Neon B',
+      url: 'https://neon.tech/pricing',
+      snippet: 'Duplicate',
+      canonicalUrl: '',
+      domain: '',
+    },
+  ]);
+
+  assert.equal(results.length, 1);
+  assert.equal(results[0].domain, 'neon.tech');
+  assert.equal(results[0].canonicalUrl, 'https://neon.tech/pricing');
+});
+
+test('getTemporalAnchor resolves explicit dates, ago offsets, and prefers last weekday', () => {
+  const { store, dir } = createTempStore();
+  try {
+    const agent = new SearchAgent({
+      searchClient: new MockSearchClient(),
+      memoryStore: store,
+      simulatedDate: new Date('2026-11-11T12:00:00.000Z'),
+      openaiApiKey: '',
+    });
+
+    const monday = agent.getTemporalAnchor('On Monday we shortlisted 5 CRM tools');
+    assert.equal(monday.referenceDateIso, '2026-11-09');
+    assert.equal(monday.deltaDays, 2);
+
+    const nov3 = agent.getTemporalAnchor('What did I ask you on 3 November?');
+    assert.equal(nov3.referenceDateIso, '2026-11-03');
+    assert.equal(nov3.deltaDays, 8);
+
+    const lastTuesday = agent.getTemporalAnchor('Last Tuesday I compared Monday pricing');
+    assert.equal(lastTuesday.referenceDateIso, '2026-11-03');
+    assert.equal(lastTuesday.deltaDays, 8);
+
+    const twoDaysAgo = agent.getTemporalAnchor('Any update from 2 days ago?');
+    assert.equal(twoDaysAgo.referenceDateIso, '2026-11-09');
+    assert.equal(twoDaysAgo.deltaDays, 2);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('MemoryStore disambiguates multiple conversations on the same calendar date', () => {
+  const { store, dir } = createTempStore();
+  try {
+    store.createConversation('c-crm', 'CRM shortlist', undefined, {
+      createdAt: '2026-11-09T09:00:00.000Z',
+      updatedAt: '2026-11-09T09:05:00.000Z',
+    });
+    store.addMessage(
+      'c-crm',
+      {
+        id: 'u1',
+        role: 'user',
+        content: 'Shortlist CRM tools for sales',
+        timestamp: '2026-11-09T09:00:00.000Z',
+      },
+      true
+    );
+
+    store.createConversation('c-db', 'Postgres hosting notes', undefined, {
+      createdAt: '2026-11-09T11:00:00.000Z',
+      updatedAt: '2026-11-09T11:05:00.000Z',
+    });
+    store.addMessage(
+      'c-db',
+      {
+        id: 'u2',
+        role: 'user',
+        content: 'Compare Neon and Supabase Postgres pricing',
+        timestamp: '2026-11-09T11:00:00.000Z',
+      },
+      true
+    );
+
+    const match = store.findTurnByDateOrEntity('Did Neon Postgres pricing change on Monday?', '2026-11-09');
+    assert.ok(match);
+    assert.equal(match.conversation.id, 'c-db');
+
+    const reloaded = new MemoryStore(store.filePath);
+    assert.equal(reloaded.getConversation('c-crm')?.createdAt, '2026-11-09T09:00:00.000Z');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('SearchAgent offline pipeline recalls seeded baselines and avoids fabricated citations', async () => {
+  const { store, dir } = createTempStore();
+  try {
+    store.ensureSeeded(getBenchmarkSeedData);
+    const agent = new SearchAgent({
+      searchClient: new MockSearchClient(),
+      memoryStore: store,
+      simulatedDate: new Date('2026-11-11T12:00:00.000Z'),
+      openaiApiKey: '',
+    });
+
+    const crmRes = await agent.process(
+      'On Monday we shortlisted 5 CRM tools for a 20-person sales team. Has any of them changed pricing or shipped something big since?',
+      'test-crm'
+    );
+    assert.equal(crmRes.routerDecision.temporalAnchor.referenceDateIso, '2026-11-09');
+    assert.equal(crmRes.sources.length, 5);
+    assert.match(crmRes.content, /HubSpot/i);
+    assert.match(crmRes.content, /Pipedrive/i);
+
+    const nov3Res = await agent.process(
+      'What did I ask you on 3 November? Is your answer still correct today?',
+      'test-nov3'
+    );
+    assert.equal(nov3Res.routerDecision.temporalAnchor.referenceDateIso, '2026-11-03');
+    assert.match(nov3Res.content, /Can you compare managed Postgres hosting providers/i);
+    assert.equal(nov3Res.sources.length, 4);
+
+    const unknownRes = await agent.process('What is the latest release of Zig?', 'test-unknown');
+    assert.equal(unknownRes.sources.length, 0);
+    assert.doesNotMatch(unknownRes.content, /example\.com/);
+    assert.match(unknownRes.content, /No search results were returned/i);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+async function invokeHandler(
+  handleRequest: (req: http.IncomingMessage, res: http.ServerResponse) => Promise<void>,
+  method: string,
+  url: string,
+  body?: unknown
+): Promise<{ status: number; body: string }> {
+  const reqStream = new PassThrough();
+  const req = Object.assign(reqStream, { method, url }) as unknown as http.IncomingMessage;
+  if (body !== undefined) {
+    reqStream.end(JSON.stringify(body));
+  } else {
+    reqStream.end();
+  }
+
+  let status = 200;
+  const chunks: Buffer[] = [];
+  const resStream = new PassThrough();
+  resStream.on('data', (c: Buffer) => chunks.push(c));
+
+  const res = Object.assign(resStream, {
+    statusCode: 200,
+    writeHead(code: number) {
+      status = code;
+      this.statusCode = code;
+      return this;
+    },
+    setHeader() {
+      return this;
+    },
+  }) as unknown as http.ServerResponse;
+
+  const done = new Promise<void>((resolve) => resStream.on('finish', resolve));
+  await handleRequest(req, res);
+  await done;
+  return { status, body: Buffer.concat(chunks).toString('utf-8') };
+}
+
+test('createAppServer serves static UI and API endpoints cleanly', async () => {
+  const { store, dir } = createTempStore();
+  const { handleRequest } = createAppServer({
+    memoryStore: store,
+    searchProvider: 'mock',
+    simulatedDate: new Date('2026-11-11T12:00:00.000Z'),
+  });
+
+  try {
+    const htmlRes = await invokeHandler(handleRequest, 'GET', '/');
+    assert.equal(htmlRes.status, 200);
+    assert.match(htmlRes.body, /<title>DeltaCheck<\/title>/);
+
+    const healthRes = await invokeHandler(handleRequest, 'GET', '/api/health');
+    assert.equal(healthRes.status, 200);
+    const health = JSON.parse(healthRes.body) as {
+      status: string;
+      currentDateIso: string;
+      conversationCount: number;
+    };
+    assert.equal(health.status, 'ok');
+    assert.equal(health.currentDateIso, '2026-11-11');
+    assert.equal(health.conversationCount, 2);
+
+    const convsRes = await invokeHandler(handleRequest, 'GET', '/api/conversations');
+    assert.equal(convsRes.status, 200);
+    const convs = JSON.parse(convsRes.body) as Array<{ id: string }>;
+    assert.equal(convs.length, 2);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });

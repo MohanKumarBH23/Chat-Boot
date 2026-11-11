@@ -1,380 +1,409 @@
-// Antigravity Search Agent Web Client
-
 let currentConversationId = null;
 let currentConversation = null;
-let activeEventSource = null;
-let lastExecutedPlan = null;
-let lastRetrievedSources = [];
+let isSending = false;
 
-// DOM Elements
 const sidebar = document.getElementById('sidebar');
+const sidebarScrim = document.getElementById('sidebarScrim');
+const menuToggleBtn = document.getElementById('menuToggleBtn');
 const conversationsList = document.getElementById('conversationsList');
+const threadCount = document.getElementById('threadCount');
 const newChatBtn = document.getElementById('newChatBtn');
+const brandHomeLink = document.getElementById('brandHomeLink');
 const currentChatTitle = document.getElementById('currentChatTitle');
-const messagesViewport = document.getElementById('messagesViewport');
-const messagesList = document.getElementById('messagesList');
+const currentDateBadge = document.getElementById('currentDateBadge');
+const statusDot = document.getElementById('statusDot');
+const telemetryText = document.getElementById('telemetryText');
+const sidebarClock = document.getElementById('sidebarClock');
+const composerToolLabel = document.getElementById('composerToolLabel');
 const welcomeBanner = document.getElementById('welcomeBanner');
+const messagesList = document.getElementById('messagesList');
+const messagesViewport = document.getElementById('messagesViewport');
+const agentActivity = document.getElementById('agentActivity');
+const activityStatusText = document.getElementById('activityStatusText');
+const activityRefBadge = document.getElementById('activityRefBadge');
+const activityTags = document.getElementById('activityTags');
 const chatForm = document.getElementById('chatForm');
 const messageInput = document.getElementById('messageInput');
 const sendBtn = document.getElementById('sendBtn');
-const agentActivity = document.getElementById('agentActivity');
-const activityStatusText = document.getElementById('activityStatusText');
-const activityTags = document.getElementById('activityTags');
-const telemetryProvider = document.getElementById('telemetryProvider');
-const telemetryLlm = document.getElementById('telemetryLlm');
+const viewSourcesBtn = document.getElementById('viewSourcesBtn');
+const sourcesCountBadge = document.getElementById('sourcesCountBadge');
 const inspectorModal = document.getElementById('inspectorModal');
 const closeInspectorBtn = document.getElementById('closeInspectorBtn');
-const viewSearchLogsBtn = document.getElementById('viewSearchLogsBtn');
 const inspectorContent = document.getElementById('inspectorContent');
 
-// Initialize
 document.addEventListener('DOMContentLoaded', async () => {
-  setupEventListeners();
-  await fetchTelemetry();
-  await loadConversations();
+  bindEvents();
+  await Promise.all([loadHealth(), loadConversations()]);
+  const initialThread = new URLSearchParams(window.location.search).get('thread');
+  if (initialThread) {
+    await openConversation(initialThread);
+  }
 });
 
-function setupEventListeners() {
-  newChatBtn.addEventListener('click', () => createNewChat());
+function bindEvents() {
+  newChatBtn.addEventListener('click', () => {
+    resetToNewThread();
+    closeSidebarMobile();
+  });
+
+  brandHomeLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    resetToNewThread();
+    closeSidebarMobile();
+  });
+
+  menuToggleBtn.addEventListener('click', () => {
+    const open = sidebar.classList.toggle('open');
+    sidebarScrim.hidden = !open;
+  });
+
+  sidebarScrim.addEventListener('click', closeSidebarMobile);
 
   chatForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    handleSendMessage();
+    submitPrompt();
+  });
+
+  messageInput.addEventListener('input', () => {
+    messageInput.style.height = 'auto';
+    messageInput.style.height = `${Math.min(messageInput.scrollHeight, 160)}px`;
   });
 
   messageInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      submitPrompt();
     }
   });
 
-  // Benchmark scenario cards
-  document.querySelectorAll('.bench-card').forEach((card) => {
-    card.addEventListener('click', () => {
-      const bench = card.getAttribute('data-bench');
-      loadBenchmarkScenario(bench);
+  document.querySelectorAll('.prompt-row').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const q = btn.getAttribute('data-query');
+      if (!q) return;
+      messageInput.value = q;
+      submitPrompt();
     });
   });
 
-  // Prompt chips in welcome banner
-  document.querySelectorAll('.prompt-chip').forEach((chip) => {
-    chip.addEventListener('click', () => {
-      const query = chip.getAttribute('data-query');
-      if (query) {
-        messageInput.value = query;
-        handleSendMessage();
-      }
-    });
-  });
-
-  // Inspector modal
-  viewSearchLogsBtn.addEventListener('click', () => {
-    renderInspectorContent();
-    inspectorModal.style.display = 'flex';
+  viewSourcesBtn.addEventListener('click', () => {
+    renderInspector();
+    inspectorModal.hidden = false;
+    closeInspectorBtn.focus();
   });
 
   closeInspectorBtn.addEventListener('click', () => {
-    inspectorModal.style.display = 'none';
+    inspectorModal.hidden = true;
+    viewSourcesBtn.focus();
   });
 
   inspectorModal.addEventListener('click', (e) => {
     if (e.target === inspectorModal) {
-      inspectorModal.style.display = 'none';
+      inspectorModal.hidden = true;
+      viewSourcesBtn.focus();
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !inspectorModal.hidden) {
+      inspectorModal.hidden = true;
+      viewSourcesBtn.focus();
     }
   });
 }
 
-async function fetchTelemetry() {
+function closeSidebarMobile() {
+  sidebar.classList.remove('open');
+  sidebarScrim.hidden = true;
+}
+
+async function loadHealth() {
   try {
-    const res = await fetch('/api/health');
-    if (res.ok) {
-      const data = await res.json();
-      if (data.searchProvider) telemetryProvider.textContent = data.searchProvider.toUpperCase();
-      if (data.llmModel) telemetryLlm.textContent = data.llmModel;
-    }
-  } catch (err) {
-    console.warn('Telemetry fetch error:', err);
+    const resp = await fetch('/api/health');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    currentDateBadge.textContent = data.currentFormatted || data.currentDateIso;
+    sidebarClock.textContent = data.currentDateIso;
+    telemetryText.textContent = `${data.searchProvider} · ${data.model}`;
+    composerToolLabel.textContent = `Search: ${data.searchProvider}`;
+    statusDot.classList.toggle('live', data.searchProvider !== 'mock');
+  } catch {
+    telemetryText.textContent = 'Offline';
   }
 }
 
 async function loadConversations() {
   try {
-    const res = await fetch('/api/conversations');
-    if (!res.ok) return;
-
-    const convs = await res.json();
-    renderConversationsList(convs);
-
-    if (convs.length > 0 && !currentConversationId) {
-      // Pick first benchmark or active conversation
-      const benchConv = convs.find((c) => c.benchmarkScenario === 'crm-shortlist') || convs[0];
-      await selectConversation(benchConv.id);
-    }
-  } catch (err) {
-    console.error('Failed to load conversations:', err);
+    const resp = await fetch('/api/conversations');
+    if (!resp.ok) return;
+    const list = await resp.json();
+    renderConversationsList(list);
+  } catch {
+    // ignore transient error
   }
 }
 
-function renderConversationsList(convs) {
+function renderConversationsList(list) {
+  threadCount.textContent = String(list.length);
   conversationsList.innerHTML = '';
 
-  convs.forEach((c) => {
-    const item = document.createElement('div');
-    item.className = `conv-item ${c.id === currentConversationId ? 'active' : ''}`;
-    item.innerHTML = `
-      <span class="conv-title">${escapeHtml(c.title || 'Untitled')}</span>
-      <button class="btn-del-conv" title="Delete conversation" data-id="${c.id}">&times;</button>
+  if (list.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'threads-empty';
+    empty.textContent = 'No saved threads';
+    conversationsList.appendChild(empty);
+    return;
+  }
+
+  for (const conv of list) {
+    const row = document.createElement('div');
+    row.className = `thread-row${conv.id === currentConversationId ? ' active' : ''}`;
+    row.setAttribute('role', 'button');
+    row.setAttribute('tabindex', '0');
+
+    const dateOnly = (conv.updatedAt || conv.createdAt || '').split('T')[0];
+
+    row.innerHTML = `
+      <span class="thread-row-body">
+        <span class="thread-row-title">${escapeHtml(conv.title || 'Untitled')}</span>
+        <span class="thread-row-date">${escapeHtml(dateOnly)}</span>
+      </span>
+      <button class="thread-del-btn" type="button" title="Delete thread" aria-label="Delete thread">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M18 6L6 18M6 6l12 12"></path>
+        </svg>
+      </button>
     `;
 
-    item.addEventListener('click', (e) => {
-      if (e.target.classList.contains('btn-del-conv')) {
-        e.stopPropagation();
-        deleteConversation(c.id);
-        return;
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('.thread-del-btn')) return;
+      openConversation(conv.id);
+      closeSidebarMobile();
+    });
+
+    row.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openConversation(conv.id);
+        closeSidebarMobile();
       }
-      selectConversation(c.id);
     });
 
-    conversationsList.appendChild(item);
-  });
-}
-
-async function selectConversation(id) {
-  currentConversationId = id;
-  try {
-    const res = await fetch(`/api/conversations/${id}`);
-    if (!res.ok) return;
-
-    currentConversation = await res.json();
-    currentChatTitle.textContent = currentConversation.title || 'Conversation';
-
-    document.querySelectorAll('.conv-item').forEach((el) => {
-      el.classList.toggle('active', el.querySelector('.btn-del-conv')?.getAttribute('data-id') === id);
+    row.querySelector('.thread-del-btn').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await deleteConversation(conv.id);
     });
 
-    renderMessages(currentConversation.messages || []);
-  } catch (err) {
-    console.error('Failed to select conversation:', err);
+    conversationsList.appendChild(row);
   }
 }
 
-async function createNewChat() {
-  try {
-    const res = await fetch('/api/conversations', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: 'New Conversation' }),
-    });
-
-    if (res.ok) {
-      const conv = await res.json();
-      await loadConversations();
-      await selectConversation(conv.id);
-      messageInput.focus();
-    }
-  } catch (err) {
-    console.error('Failed to create new chat:', err);
-  }
+async function openConversation(convId) {
+  const resp = await fetch(`/api/conversations/${encodeURIComponent(convId)}`);
+  if (!resp.ok) return;
+  currentConversation = await resp.json();
+  currentConversationId = currentConversation.id;
+  currentChatTitle.textContent = currentConversation.title;
+  renderThread();
+  await loadConversations();
 }
 
-async function deleteConversation(id) {
-  try {
-    const res = await fetch(`/api/conversations/${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      if (currentConversationId === id) {
-        currentConversationId = null;
-      }
-      await loadConversations();
-    }
-  } catch (err) {
-    console.error('Failed to delete conversation:', err);
+async function deleteConversation(convId) {
+  const resp = await fetch(`/api/conversations/${encodeURIComponent(convId)}`, { method: 'DELETE' });
+  if (!resp.ok) return;
+  if (convId === currentConversationId) {
+    resetToNewThread();
   }
+  await loadConversations();
 }
 
-async function loadBenchmarkScenario(scenarioKey) {
-  // Find conversation matching the scenario
-  const res = await fetch('/api/conversations');
-  if (!res.ok) return;
-
-  const convs = await res.json();
-  const matched = convs.find((c) => c.benchmarkScenario === scenarioKey || c.id.includes(scenarioKey));
-
-  if (matched) {
-    await selectConversation(matched.id);
-
-    // Prepopulate benchmark evaluation question
-    if (scenarioKey === 'crm-shortlist') {
-      messageInput.value = 'On Monday we shortlisted 5 CRM tools for a 20-person sales team. Has any of them changed pricing or shipped something big since?';
-    } else if (scenarioKey === 'nov-3-answer') {
-      messageInput.value = 'What did I ask you on 3 November? Is your answer still correct today?';
-    } else if (scenarioKey === 'postgres-hosting') {
-      messageInput.value = 'Last Tuesday I asked you about Postgres hosting. Has any pricing changed since then?';
-    }
-    messageInput.focus();
-  }
+function resetToNewThread() {
+  currentConversationId = null;
+  currentConversation = null;
+  currentChatTitle.textContent = 'New thread';
+  messagesList.innerHTML = '';
+  welcomeBanner.hidden = false;
+  sourcesCountBadge.textContent = '0';
+  messageInput.focus();
+  loadConversations();
 }
 
-function renderMessages(messages) {
+function renderThread() {
+  if (!currentConversation || currentConversation.messages.length === 0) {
+    welcomeBanner.hidden = false;
+    messagesList.innerHTML = '';
+    sourcesCountBadge.textContent = '0';
+    return;
+  }
+
+  welcomeBanner.hidden = true;
   messagesList.innerHTML = '';
 
-  if (messages.length === 0) {
-    welcomeBanner.style.display = 'flex';
-  } else {
-    welcomeBanner.style.display = 'none';
-    messages.forEach((msg) => appendMessageElement(msg));
+  let totalSources = 0;
+  for (const msg of currentConversation.messages) {
+    if (Array.isArray(msg.sources)) {
+      totalSources += msg.sources.length;
+    }
+    messagesList.appendChild(buildMessageCard(msg));
   }
 
-  scrollToBottom();
+  sourcesCountBadge.textContent = String(totalSources);
+  messagesViewport.scrollTop = messagesViewport.scrollHeight;
 }
 
-function appendMessageElement(msg) {
-  const row = document.createElement('div');
-  row.className = `message-row ${msg.role}`;
-  row.id = `msg-${msg.id}`;
+function buildMessageCard(msg) {
+  const card = document.createElement('article');
+  card.className = `message-card ${msg.role}`;
 
-  if (msg.role === 'user') {
-    row.innerHTML = `
-      <div class="message-meta">${escapeHtml(msg.formattedDate || '')}</div>
-      <div class="bubble">${escapeHtml(msg.content)}</div>
-    `;
-  } else {
-    const renderedMarkdown = renderMarkdownWithCitations(msg.content, msg.sources || []);
-    let sourcesHtml = '';
+  const timestamp = (msg.timestamp || '').split('T')[0];
+  const roleLabel = msg.role === 'user' ? 'You' : 'DeltaCheck';
 
-    if (msg.sources && msg.sources.length > 0) {
-      sourcesHtml = `
-        <div class="sources-strip">
-          <div class="sources-strip-header">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-            </svg>
-            Verified Sources (${msg.sources.length})
-          </div>
-          <div class="sources-grid">
-            ${msg.sources.map((s, idx) => `
-              <a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer" class="source-card">
-                <div class="source-card-top">
-                  <span class="source-domain">${escapeHtml(s.domain || 'web')}</span>
-                  <span class="source-num">[${idx + 1}]</span>
-                </div>
-                <div class="source-title">${escapeHtml(s.title || 'Source')}</div>
-                <div class="source-snippet">${escapeHtml(s.snippet || '')}</div>
-              </a>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    }
+  const header = document.createElement('div');
+  header.className = 'message-header';
 
-    let metricsHtml = '';
-    if (msg.metrics) {
-      const durSec = (msg.metrics.totalDurationMs / 1000).toFixed(2);
-      const searchSec = msg.metrics.searchDurationMs ? (msg.metrics.searchDurationMs / 1000).toFixed(2) : '0';
-      metricsHtml = `
-        <div class="metrics-footer">
-          <span>⚡ ${durSec}s total</span>
-          <span>🔍 ${searchSec}s search (${msg.metrics.searchQueryCount || 0} queries)</span>
-          <span>📚 ${msg.sources?.length || 0} sources</span>
-        </div>
-      `;
-    }
+  const roleGroup = document.createElement('div');
+  roleGroup.className = 'message-role-group';
 
-    row.innerHTML = `
-      <div class="message-meta">
-        <span class="author-badge">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polygon points="12 6 12 12 16 14"></polygon>
-          </svg>
-          Antigravity Search Agent
-        </span>
-        <span>${escapeHtml(msg.formattedDate || '')}</span>
-      </div>
-      <div class="bubble-assistant markdown-body">${renderedMarkdown}</div>
-      ${sourcesHtml}
-      ${metricsHtml}
-    `;
+  const roleSpan = document.createElement('span');
+  roleSpan.className = 'message-role';
+  roleSpan.textContent = roleLabel;
+  roleGroup.appendChild(roleSpan);
+
+  const meta = msg.metadata || {};
+  if (msg.role === 'assistant' && meta.referenceDateIso) {
+    const stamp = document.createElement('span');
+    stamp.className = 'delta-stamp';
+    const deltaLabel = typeof meta.deltaDays === 'number' ? ` · -${meta.deltaDays}d` : '';
+    stamp.textContent = `${meta.referenceDateIso}${deltaLabel}`;
+    roleGroup.appendChild(stamp);
   }
 
-  messagesList.appendChild(row);
-  return row;
+  header.appendChild(roleGroup);
+
+  const rightMeta = document.createElement('span');
+  rightMeta.className = 'message-meta';
+  if (msg.role === 'assistant' && typeof msg.latencyMs === 'number') {
+    const srcLen = Array.isArray(msg.sources) ? msg.sources.length : 0;
+    rightMeta.textContent = `${(msg.latencyMs / 1000).toFixed(2)}s · ${srcLen} sources`;
+  } else {
+    rightMeta.textContent = timestamp;
+  }
+  header.appendChild(rightMeta);
+  card.appendChild(header);
+
+  if (msg.role === 'assistant' && (meta.historicalTopicFound || (msg.queries && msg.queries.length > 0))) {
+    const ledger = document.createElement('div');
+    ledger.className = 'ledger-strip';
+
+    if (meta.historicalTopicFound) {
+      const row = document.createElement('div');
+      row.className = 'ledger-row';
+      const base = document.createElement('div');
+      base.className = 'ledger-baseline';
+      const mark = document.createElement('span');
+      mark.className = 'emit-mark';
+      mark.setAttribute('aria-hidden', 'true');
+      const topic = document.createElement('span');
+      topic.className = 'ledger-topic';
+      topic.textContent = `Baseline: ${meta.historicalTopicFound}`;
+      base.appendChild(mark);
+      base.appendChild(topic);
+      row.appendChild(base);
+      ledger.appendChild(row);
+    }
+
+    if (Array.isArray(msg.queries) && msg.queries.length > 0) {
+      const queriesWrap = document.createElement('div');
+      queriesWrap.className = 'ledger-queries';
+      for (const q of msg.queries) {
+        const chip = document.createElement('span');
+        chip.className = 'query-chip';
+        chip.textContent = q;
+        queriesWrap.appendChild(chip);
+      }
+      ledger.appendChild(queriesWrap);
+    }
+
+    card.appendChild(ledger);
+  }
+
+  const body = document.createElement('div');
+  body.className = 'markdown-body';
+  body.innerHTML = msg.role === 'user' ? `<p>${escapeHtml(msg.content)}</p>` : renderMarkdown(msg.content);
+  card.appendChild(body);
+
+  if (msg.role === 'assistant' && Array.isArray(msg.sources) && msg.sources.length > 0) {
+    const details = document.createElement('details');
+    details.className = 'sources-details';
+
+    const summary = document.createElement('summary');
+    summary.className = 'sources-summary';
+    summary.textContent = `Sources (${msg.sources.length})`;
+    details.appendChild(summary);
+
+    const list = document.createElement('div');
+    list.className = 'sources-list';
+    for (const s of msg.sources) {
+      const link = document.createElement('a');
+      link.className = 'source-item';
+      link.href = safeUrl(s.url);
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.innerHTML = `
+        <span class="source-item-title">${escapeHtml(s.title)}</span>
+        <span class="source-item-meta">${escapeHtml(s.domain)}${s.publishedDate ? ` · ${escapeHtml(s.publishedDate)}` : ''}</span>
+      `;
+      list.appendChild(link);
+    }
+    details.appendChild(list);
+    card.appendChild(details);
+  }
+
+  return card;
 }
 
-function renderMarkdownWithCitations(markdownText, sources = []) {
-  if (!window.marked) return escapeHtml(markdownText);
-
-  // Parse markdown to HTML
-  let html = window.marked.parse(markdownText);
-
-  // Convert [1], [2], [1][2] into interactive citation pills
-  html = html.replace(/\[(\d+)\]/g, (match, p1) => {
-    const idx = parseInt(p1, 10) - 1;
-    const source = sources[idx];
-    const url = source ? source.url : '#';
-    const title = source ? `${source.title} (${source.domain})` : `Source ${p1}`;
-
-    return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="cite-pill" title="${escapeHtml(title)}">[${p1}]</a>`;
-  });
-
-  return html;
-}
-
-async function handleSendMessage() {
+async function submitPrompt() {
+  if (isSending) return;
   const text = messageInput.value.trim();
   if (!text) return;
 
-  if (!currentConversationId) {
-    await createNewChat();
-  }
-
-  welcomeBanner.style.display = 'none';
-  messageInput.value = '';
+  isSending = true;
   sendBtn.disabled = true;
-
-  // Append user bubble immediately
-  const tempUserMsg = {
-    id: `temp-${Date.now()}`,
-    role: 'user',
-    content: text,
-    formattedDate: 'Just now',
-  };
-  appendMessageElement(tempUserMsg);
-  scrollToBottom();
-
-  // Create temporary assistant bubble for streaming
-  const assistantRow = document.createElement('div');
-  assistantRow.className = 'message-row assistant';
-  assistantRow.innerHTML = `
-    <div class="message-meta">
-      <span class="author-badge">Antigravity Search Agent</span>
-      <span>Generating...</span>
-    </div>
-    <div class="bubble-assistant markdown-body" id="streamingContent"></div>
-    <div id="streamingSources"></div>
-  `;
-  messagesList.appendChild(assistantRow);
-  const streamingContent = assistantRow.querySelector('#streamingContent');
-  const streamingSources = assistantRow.querySelector('#streamingSources');
-
-  // Show Agent Activity
-  agentActivity.style.display = 'flex';
-  activityStatusText.textContent = 'Analyzing query & resolving temporal memory...';
-  activityTags.innerHTML = '';
-
-  let accumulatedText = '';
-  let activeSources = [];
+  messageInput.value = '';
+  messageInput.style.height = 'auto';
 
   try {
-    const resp = await fetch(`/api/conversations/${currentConversationId}/messages`, {
+    if (!currentConversationId) {
+      const createResp = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: text.slice(0, 56) }),
+      });
+      if (!createResp.ok) throw new Error('Failed to create thread');
+      currentConversation = await createResp.json();
+      currentConversationId = currentConversation.id;
+      currentChatTitle.textContent = currentConversation.title;
+    }
+
+    welcomeBanner.hidden = true;
+    messagesList.appendChild(
+      buildMessageCard({
+        role: 'user',
+        content: text,
+        timestamp: new Date().toISOString(),
+      })
+    );
+
+    showActivity('Resolving temporal context and memory');
+    messagesViewport.scrollTop = messagesViewport.scrollHeight;
+
+    const resp = await fetch(`/api/conversations/${encodeURIComponent(currentConversationId)}/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content: text }),
     });
 
-    if (!resp.ok) {
-      throw new Error(`Server returned HTTP ${resp.status}`);
+    if (!resp.ok || !resp.body) {
+      throw new Error('Request failed');
     }
 
     const reader = resp.body.getReader();
@@ -382,133 +411,250 @@ async function handleSendMessage() {
     let buffer = '';
 
     while (true) {
-      const { done, value } = await reader.read();
+      const { value, done } = await reader.read();
       if (done) break;
-
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
 
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const jsonStr = line.slice(6).trim();
-          if (!jsonStr) continue;
+      const chunks = buffer.split('\n\n');
+      buffer = chunks.pop() || '';
 
-          try {
-            const event = JSON.parse(jsonStr);
-
-            if (event.type === 'status') {
-              activityStatusText.textContent = event.message;
-            } else if (event.type === 'plan') {
-              lastExecutedPlan = event.plan;
-              activityTags.innerHTML = '';
-
-              if (event.plan.temporalContext.relativePeriodDescription) {
-                const tag = document.createElement('span');
-                tag.className = 'activity-tag';
-                tag.textContent = `📅 ${event.plan.temporalContext.relativePeriodDescription}`;
-                activityTags.appendChild(tag);
-              }
-
-              if (event.plan.queries) {
-                event.plan.queries.forEach((q) => {
-                  const tag = document.createElement('span');
-                  tag.className = 'activity-tag';
-                  tag.textContent = `🔎 ${q}`;
-                  activityTags.appendChild(tag);
-                });
-              }
-            } else if (event.type === 'sources_ready') {
-              activeSources = event.sources;
-              lastRetrievedSources = event.sources;
-            } else if (event.type === 'token') {
-              accumulatedText += event.token;
-              streamingContent.innerHTML = renderMarkdownWithCitations(accumulatedText, activeSources);
-              scrollToBottom();
-            } else if (event.type === 'complete') {
-              agentActivity.style.display = 'none';
-              // Re-render final message cleanly
-              assistantRow.remove();
-              appendMessageElement(event.message);
-              scrollToBottom();
-            } else if (event.type === 'error') {
-              activityStatusText.textContent = `Error: ${event.message}`;
-            }
-          } catch {
-            // ignore non-json SSE lines
-          }
-        }
+      for (const chunk of chunks) {
+        const line = chunk.trim();
+        if (!line.startsWith('data:')) continue;
+        const event = JSON.parse(line.slice(5).trim());
+        handleStreamEvent(event);
       }
     }
   } catch (err) {
-    console.error('Streaming error:', err);
-    streamingContent.innerHTML += `<p style="color: #ef4444;">Error generating response: ${escapeHtml(err.message)}</p>`;
+    hideActivity();
+    messagesList.appendChild(
+      buildMessageCard({
+        role: 'assistant',
+        content: `Request failed: ${err.message}`,
+        timestamp: new Date().toISOString(),
+      })
+    );
   } finally {
-    agentActivity.style.display = 'none';
+    isSending = false;
     sendBtn.disabled = false;
+    hideActivity();
+    await loadConversations();
     messageInput.focus();
-    loadConversations();
   }
 }
 
-function renderInspectorContent() {
-  if (!lastExecutedPlan && lastRetrievedSources.length === 0) {
-    inspectorContent.innerHTML = '<p class="empty-state">No search operations executed in this session yet.</p>';
+function handleStreamEvent(event) {
+  if (event.type === 'stage' && event.stage === 'route') {
+    const anchor = event.decision.temporalAnchor;
+    if (anchor.referenceDateIso) {
+      activityRefBadge.textContent = `${anchor.referenceDateIso} · -${anchor.deltaDays}d`;
+      activityRefBadge.hidden = false;
+    } else {
+      activityRefBadge.hidden = true;
+    }
+
+    if (event.decision.searchQueries.length > 0) {
+      activityStatusText.textContent = `Searching ${event.decision.searchQueries.length} queries`;
+      activityTags.innerHTML = event.decision.searchQueries
+        .map((q) => `<span class="query-chip">${escapeHtml(q)}</span>`)
+        .join('');
+    } else {
+      activityStatusText.textContent = 'Synthesizing reply';
+      activityTags.innerHTML = '';
+    }
+  } else if (event.type === 'stage' && event.stage === 'search') {
+    activityStatusText.textContent = `Synthesizing from ${event.sources.length} sources`;
+  } else if (event.type === 'done') {
+    currentConversation = event.conversation;
+    currentChatTitle.textContent = currentConversation.title;
+    hideActivity();
+    renderThread();
+  } else if (event.type === 'error') {
+    throw new Error(event.message || 'Agent error');
+  }
+}
+
+function showActivity(label) {
+  activityStatusText.textContent = label;
+  activityRefBadge.hidden = true;
+  activityTags.innerHTML = '';
+  agentActivity.hidden = false;
+}
+
+function hideActivity() {
+  agentActivity.hidden = true;
+}
+
+function renderInspector() {
+  if (!currentConversation) {
+    inspectorContent.innerHTML = '<p class="empty-inspector">No sources retrieved in the current thread.</p>';
     return;
   }
 
-  let html = '';
+  const turns = currentConversation.messages.filter(
+    (m) => m.role === 'assistant' && ((m.sources && m.sources.length > 0) || (m.queries && m.queries.length > 0))
+  );
 
-  if (lastExecutedPlan) {
-    html += `
-      <div class="inspector-section">
-        <h4>Search Strategy & Temporal Grounding</h4>
-        <div class="inspector-query-item">
-          <div><strong>Intent:</strong> ${lastExecutedPlan.intent}</div>
-          <div><strong>Reasoning:</strong> ${lastExecutedPlan.reasoning}</div>
-          <div><strong>Current Date:</strong> ${lastExecutedPlan.temporalContext.currentDateFormatted}</div>
-          ${lastExecutedPlan.temporalContext.referenceDateFormatted ? `<div><strong>Baseline Date:</strong> ${lastExecutedPlan.temporalContext.referenceDateFormatted}</div>` : ''}
-          ${lastExecutedPlan.resolvedEntities?.length ? `<div><strong>Resolved Entities:</strong> ${lastExecutedPlan.resolvedEntities.join(', ')}</div>` : ''}
-        </div>
-      </div>
-      <div class="inspector-section">
-        <h4>Parallel Search Queries Dispatched</h4>
-        ${(lastExecutedPlan.queries || []).map((q, i) => `
-          <div class="inspector-query-item">[Query ${i + 1}] ${escapeHtml(q)}</div>
-        `).join('')}
-      </div>
-    `;
+  if (turns.length === 0) {
+    inspectorContent.innerHTML = '<p class="empty-inspector">No sources retrieved in the current thread.</p>';
+    return;
   }
 
-  if (lastRetrievedSources.length > 0) {
-    html += `
-      <div class="inspector-section">
-        <h4>Retrieved Grounding Sources (${lastRetrievedSources.length})</h4>
-        ${lastRetrievedSources.map((s, idx) => `
-          <div class="inspector-query-item">
-            <div><strong>[${idx + 1}] ${escapeHtml(s.title)}</strong></div>
-            <div style="color: var(--accent-cyan);">${escapeHtml(s.url)}</div>
-            <div style="margin-top: 4px; color: var(--text-muted);">${escapeHtml(s.snippet)}</div>
+  inspectorContent.innerHTML = '';
+  for (const turn of turns) {
+    const block = document.createElement('div');
+    block.className = 'ledger-strip';
+
+    if (Array.isArray(turn.queries) && turn.queries.length > 0) {
+      const qRow = document.createElement('div');
+      qRow.className = 'ledger-queries';
+      qRow.innerHTML = turn.queries.map((q) => `<span class="query-chip">${escapeHtml(q)}</span>`).join('');
+      block.appendChild(qRow);
+    }
+
+    if (Array.isArray(turn.sources)) {
+      for (const s of turn.sources) {
+        const card = document.createElement('a');
+        card.className = 'source-item';
+        card.href = safeUrl(s.url);
+        card.target = '_blank';
+        card.rel = 'noopener noreferrer';
+        card.innerHTML = `
+          <div>
+            <div class="source-item-title">${escapeHtml(s.title)}</div>
+            <div class="inspector-snippet">${escapeHtml(s.snippet)}</div>
           </div>
-        `).join('')}
-      </div>
-    `;
+          <span class="source-item-meta">${escapeHtml(s.domain)}${s.publishedDate ? ` · ${escapeHtml(s.publishedDate)}` : ''}</span>
+        `;
+        block.appendChild(card);
+      }
+    }
+
+    inspectorContent.appendChild(block);
   }
-
-  inspectorContent.innerHTML = html;
 }
 
-function scrollToBottom() {
-  messagesViewport.scrollTop = messagesViewport.scrollHeight;
-}
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return str
+function escapeHtml(value) {
+  return String(value ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+    .replace(/'/g, '&#39;');
+}
+
+function safeUrl(url) {
+  try {
+    const parsed = new URL(String(url));
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return parsed.href;
+    }
+  } catch {
+    // ignore invalid URL
+  }
+  return '#';
+}
+
+function formatInline(raw) {
+  let out = escapeHtml(raw);
+  out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, (_, label, url) => {
+    return `<a href="${safeUrl(url)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+  });
+  out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  out = out.replace(/`([^`]+)`/g, '<code>$1</code>');
+  return out;
+}
+
+function renderMarkdown(md) {
+  const lines = String(md || '').split(/\r?\n/);
+  const blocks = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i].trimEnd();
+
+    if (!line.trim()) {
+      i++;
+      continue;
+    }
+
+    if (/^---+$/.test(line.trim())) {
+      i++;
+      continue;
+    }
+
+    const headingMatch = line.match(/^(#{1,4})\s+(.+)$/);
+    if (headingMatch) {
+      const level = Math.min(4, Math.max(3, headingMatch[1].length));
+      blocks.push(`<h${level}>${formatInline(headingMatch[2])}</h${level}>`);
+      i++;
+      continue;
+    }
+
+    // Markdown table
+    if (line.includes('|') && i + 1 < lines.length && /^\s*\|?[\s:-]+\|/.test(lines[i + 1])) {
+      const headers = splitTableRow(line);
+      i += 2;
+      const rows = [];
+      while (i < lines.length && lines[i].includes('|') && lines[i].trim() !== '') {
+        rows.push(splitTableRow(lines[i]));
+        i++;
+      }
+      const thead = `<thead><tr>${headers.map((h) => `<th>${formatInline(h)}</th>`).join('')}</tr></thead>`;
+      const tbody = `<tbody>${rows
+        .map((r) => `<tr>${r.map((c) => `<td>${formatInline(c)}</td>`).join('')}</tr>`)
+        .join('')}</tbody>`;
+      blocks.push(`<div class="markdown-table-wrap"><table>${thead}${tbody}</table></div>`);
+      continue;
+    }
+
+    // Unordered list
+    if (/^\s*[-*]\s+/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
+        items.push(`<li>${formatInline(lines[i].replace(/^\s*[-*]\s+/, ''))}</li>`);
+        i++;
+      }
+      blocks.push(`<ul>${items.join('')}</ul>`);
+      continue;
+    }
+
+    // Ordered list
+    if (/^\s*\d+\.\s+/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
+        items.push(`<li>${formatInline(lines[i].replace(/^\s*\d+\.\s+/, ''))}</li>`);
+        i++;
+      }
+      blocks.push(`<ol>${items.join('')}</ol>`);
+      continue;
+    }
+
+    const paraLines = [line.trim()];
+    i++;
+    while (
+      i < lines.length &&
+      lines[i].trim() !== '' &&
+      !/^(#{1,4}\s+|---+$|\s*[-*]\s+|\s*\d+\.\s+)/.test(lines[i])
+    ) {
+      if (lines[i].includes('|') && i + 1 < lines.length && /^\s*\|?[\s:-]+\|/.test(lines[i + 1])) {
+        break;
+      }
+      paraLines.push(lines[i].trim());
+      i++;
+    }
+    blocks.push(`<p>${formatInline(paraLines.join(' '))}</p>`);
+  }
+
+  return blocks.join('');
+}
+
+function splitTableRow(line) {
+  return line
+    .trim()
+    .replace(/^\|/, '')
+    .replace(/\|$/, '')
+    .split('|')
+    .map((cell) => cell.trim());
 }
 

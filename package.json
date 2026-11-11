@@ -1,14 +1,15 @@
 {
-  "name": "cli-search-agent",
+  "name": "deltacheck",
   "version": "1.0.0",
-  "description": "Production-grade CLI chat agent with Web Search, temporal grounding, and differential episodic memory",
+  "description": "Web search and episodic memory chat agent with deterministic date resolution",
   "type": "module",
   "scripts": {
-    "dev": "tsx src/index.ts",
-    "start": "tsx src/index.ts",
+    "dev": "tsx src/server.ts",
+    "start": "tsx src/server.ts",
+    "cli": "tsx src/index.ts",
     "seed": "tsx src/seed.ts",
     "build": "tsc",
-    "test": "tsx src/index.ts --test"
+    "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
     "dotenv": "^16.4.7",

@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Environment & Secrets
+.env
+.env.*.local
+
+# Build Output
+dist/
+
+# Runtime Episodic Memory & Logs
+data/*.json
+*.log
+
+# Impeccable ephemeral review/decision outputs
+.impeccable/config.local.json
+.impeccable/*.png
+.impeccable/review/
+.impeccable/questions/
+.impeccable/mocks/
+
+
