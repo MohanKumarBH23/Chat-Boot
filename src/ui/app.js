@@ -1,6 +1,8 @@
 let currentConversationId = null;
 let currentConversation = null;
 let isSending = false;
+let healthInfo = null;
+let savedConversations = [];
 
 const sidebar = document.getElementById('sidebar');
 const sidebarScrim = document.getElementById('sidebarScrim');
@@ -11,6 +13,10 @@ const newChatBtn = document.getElementById('newChatBtn');
 const brandHomeLink = document.getElementById('brandHomeLink');
 const currentChatTitle = document.getElementById('currentChatTitle');
 const currentDateBadge = document.getElementById('currentDateBadge');
+const rulerEarliest = document.getElementById('rulerEarliest');
+const rulerAnchor = document.getElementById('rulerAnchor');
+const rulerLive = document.getElementById('rulerLive');
+const rulerLiveTick = document.getElementById('rulerLiveTick');
 const statusDot = document.getElementById('statusDot');
 const telemetryText = document.getElementById('telemetryText');
 const sidebarClock = document.getElementById('sidebarClock');
@@ -121,11 +127,13 @@ async function loadHealth() {
     const resp = await fetch('/api/health');
     if (!resp.ok) return;
     const data = await resp.json();
+    healthInfo = data;
     currentDateBadge.textContent = data.currentFormatted || data.currentDateIso;
     sidebarClock.textContent = data.currentDateIso;
     telemetryText.textContent = `${data.searchProvider} · ${data.model}`;
     composerToolLabel.textContent = `Search: ${data.searchProvider}`;
     statusDot.classList.toggle('live', data.searchProvider !== 'mock');
+    updateContinuumRuler();
   } catch {
     telemetryText.textContent = 'Offline';
   }
@@ -136,10 +144,69 @@ async function loadConversations() {
     const resp = await fetch('/api/conversations');
     if (!resp.ok) return;
     const list = await resp.json();
+    savedConversations = list;
     renderConversationsList(list);
+    updateContinuumRuler();
   } catch {
     // ignore transient error
   }
+}
+
+function diffIsoDays(fromIso, toIso) {
+  if (!fromIso || !toIso) return null;
+  const fromMs = Date.parse(`${fromIso}T00:00:00Z`);
+  const toMs = Date.parse(`${toIso}T00:00:00Z`);
+  if (Number.isNaN(fromMs) || Number.isNaN(toMs)) return null;
+  return Math.max(0, Math.round((toMs - fromMs) / 86400000));
+}
+
+function formatDateStamp(iso, todayIso, tag) {
+  if (!iso) return `-- · ${tag}`;
+  const delta = diffIsoDays(iso, todayIso);
+  const deltaPart = typeof delta === 'number' ? ` · -${delta}d` : '';
+  return `${iso}${deltaPart} · ${tag}`;
+}
+
+function updateContinuumRuler() {
+  const todayIso = healthInfo?.currentDateIso || '';
+  const dates = savedConversations
+    .map((c) => (c.updatedAt || c.createdAt || '').split('T')[0])
+    .filter(Boolean)
+    .sort();
+  const earliestIso = dates[0] || todayIso;
+  const latestIso = dates[dates.length - 1] || todayIso;
+
+  let anchorIso = latestIso;
+  let anchorTag = 'Latest note';
+  let hasVerifiedLive = false;
+
+  if (currentConversation && Array.isArray(currentConversation.messages)) {
+    const assistantTurns = currentConversation.messages.filter((m) => m.role === 'assistant');
+    const anchoredTurn = [...assistantTurns].reverse().find((m) => m.metadata?.referenceDateIso);
+    if (anchoredTurn) {
+      anchorIso = anchoredTurn.metadata.referenceDateIso;
+      anchorTag = 'Anchor';
+    } else if (currentConversation.createdAt) {
+      anchorIso = currentConversation.createdAt.split('T')[0];
+      anchorTag = 'Baseline';
+    }
+    hasVerifiedLive = assistantTurns.some((m) => typeof m.latencyMs === 'number');
+  }
+
+  rulerEarliest.textContent = formatDateStamp(earliestIso, todayIso, 'Earliest');
+  rulerAnchor.textContent = formatDateStamp(anchorIso, todayIso, anchorTag);
+  rulerLive.textContent = `${todayIso || '--'} · ${hasVerifiedLive ? 'Verified live' : 'Live check'}`;
+  rulerLiveTick.classList.toggle('tick-green', hasVerifiedLive);
+  rulerLiveTick.classList.toggle('tick-cyan', !hasVerifiedLive);
+}
+
+function truncateWords(text, maxLen = 56) {
+  const clean = String(text || '').trim().replace(/\s+/g, ' ');
+  if (clean.length <= maxLen) return clean;
+  const cut = clean.slice(0, maxLen);
+  const lastSpace = cut.lastIndexOf(' ');
+  const trimmed = lastSpace > Math.floor(maxLen * 0.5) ? cut.slice(0, lastSpace) : cut;
+  return `${trimmed.replace(/[,:;.\-\s]+$/, '')}…`;
 }
 
 function renderConversationsList(list) {
@@ -157,42 +224,38 @@ function renderConversationsList(list) {
   for (const conv of list) {
     const row = document.createElement('div');
     row.className = `thread-row${conv.id === currentConversationId ? ' active' : ''}`;
-    row.setAttribute('role', 'button');
-    row.setAttribute('tabindex', '0');
 
     const dateOnly = (conv.updatedAt || conv.createdAt || '').split('T')[0];
-
-    row.innerHTML = `
+    const selectBtn = document.createElement('button');
+    selectBtn.type = 'button';
+    selectBtn.className = 'thread-select-btn';
+    selectBtn.innerHTML = `
       <span class="thread-row-body">
         <span class="thread-row-title">${escapeHtml(conv.title || 'Untitled')}</span>
         <span class="thread-row-date">${escapeHtml(dateOnly)}</span>
       </span>
-      <button class="thread-del-btn" type="button" title="Delete thread" aria-label="Delete thread">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-          <path d="M18 6L6 18M6 6l12 12"></path>
-        </svg>
-      </button>
     `;
-
-    row.addEventListener('click', (e) => {
-      if (e.target.closest('.thread-del-btn')) return;
+    selectBtn.addEventListener('click', () => {
       openConversation(conv.id);
       closeSidebarMobile();
     });
 
-    row.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        openConversation(conv.id);
-        closeSidebarMobile();
-      }
-    });
-
-    row.querySelector('.thread-del-btn').addEventListener('click', async (e) => {
-      e.stopPropagation();
+    const delBtn = document.createElement('button');
+    delBtn.className = 'thread-del-btn';
+    delBtn.type = 'button';
+    delBtn.title = 'Delete thread';
+    delBtn.setAttribute('aria-label', `Delete ${conv.title || 'thread'}`);
+    delBtn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+        <path d="M18 6L6 18M6 6l12 12"></path>
+      </svg>
+    `;
+    delBtn.addEventListener('click', async () => {
       await deleteConversation(conv.id);
     });
 
+    row.appendChild(selectBtn);
+    row.appendChild(delBtn);
     conversationsList.appendChild(row);
   }
 }
@@ -223,15 +286,17 @@ function resetToNewThread() {
   messagesList.innerHTML = '';
   welcomeBanner.hidden = false;
   sourcesCountBadge.textContent = '0';
+  updateContinuumRuler();
   messageInput.focus();
   loadConversations();
 }
 
-function renderThread() {
+function renderThread({ scrollToEnd = false } = {}) {
   if (!currentConversation || currentConversation.messages.length === 0) {
     welcomeBanner.hidden = false;
     messagesList.innerHTML = '';
     sourcesCountBadge.textContent = '0';
+    updateContinuumRuler();
     return;
   }
 
@@ -247,7 +312,8 @@ function renderThread() {
   }
 
   sourcesCountBadge.textContent = String(totalSources);
-  messagesViewport.scrollTop = messagesViewport.scrollHeight;
+  updateContinuumRuler();
+  messagesViewport.scrollTop = scrollToEnd ? messagesViewport.scrollHeight : 0;
 }
 
 function buildMessageCard(msg) {
@@ -279,15 +345,25 @@ function buildMessageCard(msg) {
 
   header.appendChild(roleGroup);
 
-  const rightMeta = document.createElement('span');
-  rightMeta.className = 'message-meta';
+  const rightGroup = document.createElement('div');
+  rightGroup.className = 'message-meta-group';
   if (msg.role === 'assistant' && typeof msg.latencyMs === 'number') {
     const srcLen = Array.isArray(msg.sources) ? msg.sources.length : 0;
-    rightMeta.textContent = `${(msg.latencyMs / 1000).toFixed(2)}s · ${srcLen} sources`;
+    const verified = document.createElement('span');
+    verified.className = 'verified-stamp';
+    verified.textContent = srcLen > 0 ? 'Verified live' : 'Checked';
+    rightGroup.appendChild(verified);
+    const timing = document.createElement('span');
+    timing.className = 'message-meta';
+    timing.textContent = `${(msg.latencyMs / 1000).toFixed(2)}s · ${srcLen} sources`;
+    rightGroup.appendChild(timing);
   } else {
-    rightMeta.textContent = timestamp;
+    const timing = document.createElement('span');
+    timing.className = 'message-meta';
+    timing.textContent = timestamp;
+    rightGroup.appendChild(timing);
   }
-  header.appendChild(rightMeta);
+  header.appendChild(rightGroup);
   card.appendChild(header);
 
   if (msg.role === 'assistant' && (meta.historicalTopicFound || (msg.queries && msg.queries.length > 0))) {
@@ -315,10 +391,17 @@ function buildMessageCard(msg) {
       const queriesWrap = document.createElement('div');
       queriesWrap.className = 'ledger-queries';
       for (const q of msg.queries) {
-        const chip = document.createElement('span');
-        chip.className = 'query-chip';
-        chip.textContent = q;
-        queriesWrap.appendChild(chip);
+        const line = document.createElement('span');
+        line.className = 'query-line';
+        const qMark = document.createElement('span');
+        qMark.className = 'emit-mark live-cyan';
+        qMark.setAttribute('aria-hidden', 'true');
+        const qText = document.createElement('span');
+        qText.className = 'query-text';
+        qText.textContent = q;
+        line.appendChild(qMark);
+        line.appendChild(qText);
+        queriesWrap.appendChild(line);
       }
       ledger.appendChild(queriesWrap);
     }
@@ -376,7 +459,7 @@ async function submitPrompt() {
       const createResp = await fetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: text.slice(0, 56) }),
+        body: JSON.stringify({ title: truncateWords(text, 56) }),
       });
       if (!createResp.ok) throw new Error('Failed to create thread');
       currentConversation = await createResp.json();
@@ -456,7 +539,10 @@ function handleStreamEvent(event) {
     if (event.decision.searchQueries.length > 0) {
       activityStatusText.textContent = `Searching ${event.decision.searchQueries.length} queries`;
       activityTags.innerHTML = event.decision.searchQueries
-        .map((q) => `<span class="query-chip">${escapeHtml(q)}</span>`)
+        .map(
+          (q) =>
+            `<span class="query-line"><span class="emit-mark live-cyan" aria-hidden="true"></span><span class="query-text">${escapeHtml(q)}</span></span>`
+        )
         .join('');
     } else {
       activityStatusText.textContent = 'Synthesizing reply';
@@ -468,7 +554,7 @@ function handleStreamEvent(event) {
     currentConversation = event.conversation;
     currentChatTitle.textContent = currentConversation.title;
     hideActivity();
-    renderThread();
+    renderThread({ scrollToEnd: true });
   } else if (event.type === 'error') {
     throw new Error(event.message || 'Agent error');
   }
@@ -503,12 +589,17 @@ function renderInspector() {
   inspectorContent.innerHTML = '';
   for (const turn of turns) {
     const block = document.createElement('div');
-    block.className = 'ledger-strip';
+    block.className = 'inspector-turn';
 
     if (Array.isArray(turn.queries) && turn.queries.length > 0) {
       const qRow = document.createElement('div');
       qRow.className = 'ledger-queries';
-      qRow.innerHTML = turn.queries.map((q) => `<span class="query-chip">${escapeHtml(q)}</span>`).join('');
+      qRow.innerHTML = turn.queries
+        .map(
+          (q) =>
+            `<span class="query-line"><span class="emit-mark live-cyan" aria-hidden="true"></span><span class="query-text">${escapeHtml(q)}</span></span>`
+        )
+        .join('');
       block.appendChild(qRow);
     }
 
@@ -621,12 +712,14 @@ function renderMarkdown(md) {
 
     // Ordered list
     if (/^\s*\d+\.\s+/.test(line)) {
+      const firstMatch = line.match(/^\s*(\d+)\.\s+/);
+      const startNum = firstMatch ? Number(firstMatch[1]) : 1;
       const items = [];
       while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
         items.push(`<li>${formatInline(lines[i].replace(/^\s*\d+\.\s+/, ''))}</li>`);
         i++;
       }
-      blocks.push(`<ol>${items.join('')}</ol>`);
+      blocks.push(startNum > 1 ? `<ol start="${startNum}">${items.join('')}</ol>` : `<ol>${items.join('')}</ol>`);
       continue;
     }
 

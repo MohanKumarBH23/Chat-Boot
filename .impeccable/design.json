@@ -1,0 +1,411 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-11T10:15:00Z",
+  "title": "Design System: DeltaCheck",
+  "extensions": {
+    "colorMeta": {
+      "sodium-gold": {
+        "role": "primary",
+        "displayName": "Sodium Gold",
+        "canonical": "oklch(87.4% 0.155 88.6)",
+        "tonalRamp": [
+          "oklch(15% 0.05 88.6)",
+          "oklch(27% 0.103 88.6)",
+          "oklch(39% 0.14 88.6)",
+          "oklch(51% 0.155 88.6)",
+          "oklch(63% 0.146 88.6)",
+          "oklch(75% 0.114 88.6)",
+          "oklch(86% 0.069 88.6)",
+          "oklch(95% 0.034 88.6)"
+        ]
+      },
+      "sodium-line": {
+        "role": "primary",
+        "displayName": "Sodium Emission Line",
+        "canonical": "oklch(87.4% 0.155 88.6 / 0.36)",
+        "tonalRamp": [
+          "oklch(15% 0.05 88.6)",
+          "oklch(27% 0.103 88.6)",
+          "oklch(39% 0.14 88.6)",
+          "oklch(51% 0.155 88.6)",
+          "oklch(63% 0.146 88.6)",
+          "oklch(75% 0.114 88.6)",
+          "oklch(86% 0.069 88.6)",
+          "oklch(95% 0.034 88.6)"
+        ]
+      },
+      "cyan-query": {
+        "role": "secondary",
+        "displayName": "Query Cyan",
+        "canonical": "oklch(78.2% 0.121 222.5)",
+        "tonalRamp": [
+          "oklch(15% 0.039 222.5)",
+          "oklch(27% 0.08 222.5)",
+          "oklch(39% 0.109 222.5)",
+          "oklch(51% 0.121 222.5)",
+          "oklch(63% 0.114 222.5)",
+          "oklch(75% 0.089 222.5)",
+          "oklch(86% 0.054 222.5)",
+          "oklch(95% 0.027 222.5)"
+        ]
+      },
+      "emerald-verified": {
+        "role": "tertiary",
+        "displayName": "Verified Emerald",
+        "canonical": "oklch(73.6% 0.137 152.1)",
+        "tonalRamp": [
+          "oklch(15% 0.044 152.1)",
+          "oklch(27% 0.091 152.1)",
+          "oklch(39% 0.124 152.1)",
+          "oklch(51% 0.137 152.1)",
+          "oklch(63% 0.129 152.1)",
+          "oklch(75% 0.101 152.1)",
+          "oklch(86% 0.061 152.1)",
+          "oklch(95% 0.03 152.1)"
+        ]
+      },
+      "crimson-destructive": {
+        "role": "tertiary",
+        "displayName": "Destructive Coral",
+        "canonical": "oklch(69.7% 0.159 26.5)",
+        "tonalRamp": [
+          "oklch(15% 0.052 26.5)",
+          "oklch(27% 0.106 26.5)",
+          "oklch(39% 0.143 26.5)",
+          "oklch(51% 0.159 26.5)",
+          "oklch(63% 0.15 26.5)",
+          "oklch(75% 0.117 26.5)",
+          "oklch(86% 0.071 26.5)",
+          "oklch(95% 0.035 26.5)"
+        ]
+      },
+      "continuum-ground": {
+        "role": "neutral",
+        "displayName": "Continuum Ground",
+        "canonical": "oklch(18.1% 0.005 248.1)",
+        "tonalRamp": [
+          "oklch(15% 0.002 248.1)",
+          "oklch(27% 0.003 248.1)",
+          "oklch(39% 0.005 248.1)",
+          "oklch(51% 0.005 248.1)",
+          "oklch(63% 0.005 248.1)",
+          "oklch(75% 0.004 248.1)",
+          "oklch(86% 0.002 248.1)",
+          "oklch(95% 0.001 248.1)"
+        ]
+      },
+      "rail-surface": {
+        "role": "neutral",
+        "displayName": "Rail Surface",
+        "canonical": "oklch(19.8% 0.008 248.2)",
+        "tonalRamp": [
+          "oklch(15% 0.003 248.2)",
+          "oklch(27% 0.005 248.2)",
+          "oklch(39% 0.007 248.2)",
+          "oklch(51% 0.008 248.2)",
+          "oklch(63% 0.008 248.2)",
+          "oklch(75% 0.006 248.2)",
+          "oklch(86% 0.004 248.2)",
+          "oklch(95% 0.002 248.2)"
+        ]
+      },
+      "plate-surface": {
+        "role": "neutral",
+        "displayName": "Plate Surface",
+        "canonical": "oklch(22% 0.007 248.2)",
+        "tonalRamp": [
+          "oklch(15% 0.002 248.2)",
+          "oklch(27% 0.005 248.2)",
+          "oklch(39% 0.006 248.2)",
+          "oklch(51% 0.007 248.2)",
+          "oklch(63% 0.007 248.2)",
+          "oklch(75% 0.005 248.2)",
+          "oklch(86% 0.003 248.2)",
+          "oklch(95% 0.002 248.2)"
+        ]
+      },
+      "plate-active": {
+        "role": "neutral",
+        "displayName": "Plate Active",
+        "canonical": "oklch(24.9% 0.012 248.3)",
+        "tonalRamp": [
+          "oklch(15% 0.004 248.3)",
+          "oklch(27% 0.008 248.3)",
+          "oklch(39% 0.011 248.3)",
+          "oklch(51% 0.012 248.3)",
+          "oklch(63% 0.011 248.3)",
+          "oklch(75% 0.009 248.3)",
+          "oklch(86% 0.005 248.3)",
+          "oklch(95% 0.003 248.3)"
+        ]
+      },
+      "rule-hairline": {
+        "role": "neutral",
+        "displayName": "Rule Hairline",
+        "canonical": "oklch(29.5% 0.013 253)",
+        "tonalRamp": [
+          "oklch(15% 0.004 253)",
+          "oklch(27% 0.009 253)",
+          "oklch(39% 0.012 253)",
+          "oklch(51% 0.013 253)",
+          "oklch(63% 0.012 253)",
+          "oklch(75% 0.01 253)",
+          "oklch(86% 0.006 253)",
+          "oklch(95% 0.003 253)"
+        ]
+      },
+      "rule-axis": {
+        "role": "neutral",
+        "displayName": "Rule Axis",
+        "canonical": "oklch(35.4% 0.016 255.6)",
+        "tonalRamp": [
+          "oklch(15% 0.005 255.6)",
+          "oklch(27% 0.011 255.6)",
+          "oklch(39% 0.014 255.6)",
+          "oklch(51% 0.016 255.6)",
+          "oklch(63% 0.015 255.6)",
+          "oklch(75% 0.012 255.6)",
+          "oklch(86% 0.007 255.6)",
+          "oklch(95% 0.004 255.6)"
+        ]
+      },
+      "rule-strong": {
+        "role": "neutral",
+        "displayName": "Rule Strong",
+        "canonical": "oklch(36.9% 0.016 255.6)",
+        "tonalRamp": [
+          "oklch(15% 0.005 255.6)",
+          "oklch(27% 0.011 255.6)",
+          "oklch(39% 0.014 255.6)",
+          "oklch(51% 0.016 255.6)",
+          "oklch(63% 0.015 255.6)",
+          "oklch(75% 0.012 255.6)",
+          "oklch(86% 0.007 255.6)",
+          "oklch(95% 0.004 255.6)"
+        ]
+      },
+      "ink-bone": {
+        "role": "neutral",
+        "displayName": "Bone Ink",
+        "canonical": "oklch(93.1% 0.012 91.5)",
+        "tonalRamp": [
+          "oklch(15% 0.004 91.5)",
+          "oklch(27% 0.008 91.5)",
+          "oklch(39% 0.011 91.5)",
+          "oklch(51% 0.012 91.5)",
+          "oklch(63% 0.011 91.5)",
+          "oklch(75% 0.009 91.5)",
+          "oklch(86% 0.005 91.5)",
+          "oklch(95% 0.003 91.5)"
+        ]
+      },
+      "ink-secondary": {
+        "role": "neutral",
+        "displayName": "Secondary Ash Ink",
+        "canonical": "oklch(77.1% 0.018 88)",
+        "tonalRamp": [
+          "oklch(15% 0.006 88)",
+          "oklch(27% 0.012 88)",
+          "oklch(39% 0.016 88)",
+          "oklch(51% 0.018 88)",
+          "oklch(63% 0.017 88)",
+          "oklch(75% 0.013 88)",
+          "oklch(86% 0.008 88)",
+          "oklch(95% 0.004 88)"
+        ]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Muted Ash Ink",
+        "canonical": "oklch(66.4% 0.017 86.4)",
+        "tonalRamp": [
+          "oklch(15% 0.006 86.4)",
+          "oklch(27% 0.011 86.4)",
+          "oklch(39% 0.015 86.4)",
+          "oklch(51% 0.017 86.4)",
+          "oklch(63% 0.016 86.4)",
+          "oklch(75% 0.013 86.4)",
+          "oklch(86% 0.008 86.4)",
+          "oklch(95% 0.004 86.4)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Empty-state headline (.empty-title); steps down to 24px on <=768px viewports."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Markdown h3/h4 section subheadings and the 16px DeltaCheck brand wordmark."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Active thread title in the 56px topbar (500 weight) and inspector modal title (600 weight)."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Primary conversation prose, prompt suggestions, and composer input (74ch max measure), paired with a 13px compact body tier for tables, thread titles, and snippets."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Spline Sans Mono tabular-nums readouts for timestamps, -Nd deltas, continuum ticks, query lines, counts, table headers, and keycaps (11px-12px)."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "ease-spectroscopy",
+        "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Shared exponential deceleration curve (--ease) across all hover, focus, drawer, and row-entry transitions."
+      },
+      {
+        "name": "duration-micro",
+        "value": "140ms",
+        "purpose": "State transitions on buttons, thread ticks, source links, and composer focus borders."
+      },
+      {
+        "name": "duration-plate-enter",
+        "value": "180ms",
+        "purpose": "Specimen message plate entrance keyframe (enterRow: opacity 0.25 -> 1, translateY 4px -> 0)."
+      },
+      {
+        "name": "duration-drawer",
+        "value": "200ms",
+        "purpose": "Mobile sidebar slide-over transform below 768px."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile",
+        "value": "768px",
+        "purpose": "At max-width: 768px, turns 264px left rail into an off-canvas drawer, shows History toggle, widens delete button targets to 36px, wraps continuum ticks, stacks prompt/source rows, and hides desktop date stamp and keyboard hints."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Dispatch Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Sodium-gold primary action button that dispatches temporal verification checks.",
+      "html": "<button type=\"submit\" class=\"ds-send-btn\">Dispatch</button>",
+      "css": ".ds-send-btn { height: 32px; padding: 0 14px; border-radius: var(--radius-sharp, 2px); border: none; background-color: var(--emit-sodium, #ffcf48); color: var(--bg-continuum, #101214); font-family: var(--font-mono, 'Spline Sans Mono', monospace); font-size: 12px; font-weight: 600; letter-spacing: 0.02em; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: opacity 140ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)), transform 140ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)); } .ds-send-btn:hover { opacity: 0.9; } .ds-send-btn:active { transform: scale(0.98); } .ds-send-btn:disabled { opacity: 0.38; cursor: not-allowed; } .ds-send-btn:focus-visible { outline: 2px solid var(--emit-sodium, #ffcf48); outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Sources Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Topbar button opening the Sources & query log inspector with cyan lens icon and tabular count.",
+      "html": "<button type=\"button\" class=\"ds-secondary-btn\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"7\"></circle><path d=\"M20 20l-3.5-3.5\"></path></svg><span>Sources</span><span class=\"ds-count-meta\">5</span></button>",
+      "css": ".ds-secondary-btn { height: 32px; padding: 0 12px; border-radius: var(--radius-sharp, 2px); border: 1px solid var(--rule-hairline, #282d33); background-color: var(--bg-plate, #181b1e); color: var(--ink-bone, #ebe8df); font-family: var(--font-sans, 'Work Sans', sans-serif); font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; transition: background-color 140ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)), border-color 140ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)); } .ds-secondary-btn svg { color: var(--emit-cyan, #4cc9f0); } .ds-secondary-btn:hover { background-color: var(--bg-plate-active, #1d2227); border-color: var(--emit-cyan, #4cc9f0); } .ds-secondary-btn:focus-visible { outline: 2px solid var(--emit-sodium, #ffcf48); outline-offset: 2px; } .ds-count-meta { font-family: var(--font-mono, 'Spline Sans Mono', monospace); font-size: 11px; font-variant-numeric: tabular-nums; color: var(--ink-muted, #989388); }"
+    },
+    {
+      "name": "Compact Rail Button",
+      "kind": "button",
+      "refersTo": "button-compact",
+      "description": "Compact 30px header action used for + New thread and mobile History toggle.",
+      "html": "<button type=\"button\" class=\"ds-compact-btn\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"></path></svg><span>New</span></button>",
+      "css": ".ds-compact-btn { height: 30px; padding: 0 10px; border-radius: var(--radius-sharp, 2px); border: 1px solid var(--rule-hairline, #282d33); background-color: var(--bg-plate, #181b1e); color: var(--ink-bone, #ebe8df); font-family: var(--font-sans, 'Work Sans', sans-serif); font-size: 12px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: background-color 140ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)), border-color 140ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)), color 140ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)); } .ds-compact-btn:hover { background-color: var(--bg-plate-active, #1d2227); border-color: var(--emit-cyan, #4cc9f0); } .ds-compact-btn:active { transform: scale(0.98); } .ds-compact-btn:focus-visible { outline: 2px solid var(--emit-sodium, #ffcf48); outline-offset: 2px; }"
+    },
+    {
+      "name": "Icon Close Button",
+      "kind": "button",
+      "refersTo": "button-icon",
+      "description": "32px square icon button used to dismiss the Sources & query log modal.",
+      "html": "<button type=\"button\" class=\"ds-icon-btn\" aria-label=\"Close panel\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M18 6L6 18M6 6l12 12\"></path></svg></button>",
+      "css": ".ds-icon-btn { width: 32px; height: 32px; border-radius: var(--radius-sharp, 2px); border: 1px solid var(--rule-hairline, #282d33); background-color: var(--bg-plate, #181b1e); color: var(--ink-secondary, #b9b4a8); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: background-color 140ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)), border-color 140ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)), color 140ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)); } .ds-icon-btn:hover { background-color: var(--bg-plate-active, #1d2227); border-color: var(--rule-strong, #3a4048); color: var(--ink-bone, #ebe8df); } .ds-icon-btn:active { transform: scale(0.98); } .ds-icon-btn:focus-visible { outline: 2px solid var(--emit-sodium, #ffcf48); outline-offset: 2px; }"
+    },
+    {
+      "name": "Prompt Composer",
+      "kind": "input",
+      "refersTo": "input-composer",
+      "description": "Hairline-framed prompt field that highlights in sodium gold on focus-within and houses the Dispatch control.",
+      "html": "<div class=\"ds-composer-wrap\"><div class=\"ds-composer-box\"><textarea class=\"ds-composer-input\" rows=\"1\" placeholder=\"Ask or reference a date\" aria-label=\"Prompt\"></textarea><button type=\"button\" class=\"ds-composer-send\">Dispatch</button></div><div class=\"ds-composer-meta\"><span><kbd class=\"ds-keycap\">Enter</kbd> to send</span><span>Search: mock</span></div></div>",
+      "css": ".ds-composer-wrap { display: flex; flex-direction: column; gap: 8px; max-width: 820px; background-color: var(--bg-rail, #131619); padding: 12px; } .ds-composer-box { display: flex; align-items: flex-end; gap: 8px; padding: 8px 8px 8px 16px; border-radius: var(--radius-sharp, 2px); border: 1px solid var(--rule-strong, #3a4048); background-color: var(--bg-plate, #181b1e); transition: border-color 140ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)); } .ds-composer-box:focus-within { border-color: var(--emit-sodium, #ffcf48); } .ds-composer-input { flex: 1; background: transparent; border: none; resize: none; font-family: var(--font-sans, 'Work Sans', sans-serif); font-size: 14px; line-height: 22px; min-height: 24px; padding: 4px 0; color: var(--ink-bone, #ebe8df); caret-color: var(--emit-sodium, #ffcf48); outline: none; } .ds-composer-input::placeholder { color: var(--ink-muted, #989388); } .ds-composer-send { height: 32px; padding: 0 14px; border-radius: var(--radius-sharp, 2px); border: none; background-color: var(--emit-sodium, #ffcf48); color: var(--bg-continuum, #101214); font-family: var(--font-mono, 'Spline Sans Mono', monospace); font-size: 12px; font-weight: 600; cursor: pointer; } .ds-composer-send:hover { opacity: 0.9; } .ds-composer-send:focus-visible { outline: 2px solid var(--emit-sodium, #ffcf48); outline-offset: 2px; } .ds-composer-meta { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-sans, 'Work Sans', sans-serif); font-size: 12px; color: var(--ink-muted, #989388); padding: 0 2px; } .ds-keycap { font-family: var(--font-mono, 'Spline Sans Mono', monospace); font-size: 11px; line-height: 16px; padding: 0 6px; border-radius: var(--radius-sharp, 2px); border: 1px solid var(--rule-strong, #3a4048); background-color: var(--bg-plate, #181b1e); color: var(--ink-secondary, #b9b4a8); }"
+    },
+    {
+      "name": "Calibrated Rail Thread Row",
+      "kind": "nav",
+      "refersTo": "nav-thread-row",
+      "description": "Thread entry anchored to the 1px vertical timeline rail with cross-tick hover/active spectral states.",
+      "html": "<nav class=\"ds-threads-rail\" aria-label=\"Saved threads\"><div class=\"ds-thread-row ds-active\"><button type=\"button\" class=\"ds-thread-btn\"><span class=\"ds-thread-title\">Shortlist 5 CRM tools for 20-person sales team</span><span class=\"ds-thread-date\">2026-11-09</span></button><button type=\"button\" class=\"ds-thread-del\" aria-label=\"Delete thread\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M18 6L6 18M6 6l12 12\"></path></svg></button></div><div class=\"ds-thread-row\"><button type=\"button\" class=\"ds-thread-btn\"><span class=\"ds-thread-title\">Managed Postgres hosting compute rates</span><span class=\"ds-thread-date\">2026-11-03</span></button><button type=\"button\" class=\"ds-thread-del\" aria-label=\"Delete thread\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M18 6L6 18M6 6l12 12\"></path></svg></button></div></nav>",
+      "css": ".ds-threads-rail { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 8px 8px 8px 14px; background-color: var(--bg-rail, #131619); } .ds-threads-rail::before { content: ''; position: absolute; left: 6px; top: 0; bottom: 0; width: 1px; background-color: var(--rule-axis, #363c44); } .ds-thread-row { position: relative; display: flex; align-items: center; gap: 4px; min-height: 44px; padding: 2px 4px 2px 0; border-top: 1px solid transparent; border-bottom: 1px solid transparent; color: var(--ink-secondary, #b9b4a8); transition: background-color 140ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)), border-color 140ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)), color 140ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)); } .ds-thread-row::before { content: ''; position: absolute; left: -8px; top: 50%; transform: translateY(-50%); width: 6px; height: 1px; background-color: var(--rule-strong, #3a4048); } .ds-thread-row:hover { background-color: var(--bg-plate, #181b1e); border-top-color: var(--rule-hairline, #282d33); border-bottom-color: var(--rule-hairline, #282d33); color: var(--ink-bone, #ebe8df); } .ds-thread-row:hover::before { width: 2px; height: 18px; left: -9px; background-color: var(--emit-cyan, #4cc9f0); } .ds-thread-row.ds-active { background-color: var(--bg-plate-active, #1d2227); border-top-color: var(--rule-strong, #3a4048); border-bottom-color: var(--rule-strong, #3a4048); color: var(--ink-bone, #ebe8df); } .ds-thread-row.ds-active::before { width: 5px; height: 26px; left: -10px; background: linear-gradient(90deg, var(--emit-sodium, #ffcf48) 0 1.5px, transparent 1.5px 3.5px, var(--emit-sodium, #ffcf48) 3.5px 5px); } .ds-thread-btn { flex: 1; min-width: 0; padding: 6px 6px 6px 12px; border: none; background: transparent; color: inherit; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 2px; } .ds-thread-btn:focus-visible, .ds-thread-del:focus-visible { outline: 2px solid var(--emit-sodium, #ffcf48); outline-offset: 2px; } .ds-thread-title { font-family: var(--font-sans, 'Work Sans', sans-serif); font-size: 13px; font-weight: 500; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-thread-date { font-family: var(--font-mono, 'Spline Sans Mono', monospace); font-size: 11px; line-height: 15px; font-variant-numeric: tabular-nums; color: var(--ink-muted, #989388); } .ds-thread-row.ds-active .ds-thread-date { color: var(--ink-secondary, #b9b4a8); } .ds-thread-del { width: 28px; height: 28px; border: 1px solid transparent; border-radius: var(--radius-sharp, 2px); background: transparent; color: var(--ink-muted, #989388); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0.45; } .ds-thread-row:hover .ds-thread-del, .ds-thread-row.ds-active .ds-thread-del { opacity: 1; } .ds-thread-del:hover { color: var(--emit-red, #f07167); border-color: rgba(240, 113, 103, 0.35); background-color: rgba(240, 113, 103, 0.12); }"
+    },
+    {
+      "name": "Temporal Continuum Ruler",
+      "kind": "custom",
+      "description": "Full-width calibrated date ruler below the workspace topbar showing earliest, anchored baseline, and live verification ticks.",
+      "html": "<div class=\"ds-continuum-ruler\"><span class=\"ds-ruler-tick\"><span class=\"ds-tick-bar ds-tick-cyan\"></span><span>2026-11-03 · -8d · Earliest</span></span><span class=\"ds-ruler-tick\"><span class=\"ds-tick-bar ds-tick-sodium\"></span><span>2026-11-09 · -2d · Anchor</span></span><span class=\"ds-ruler-tick\"><span class=\"ds-tick-bar ds-tick-green\"></span><span>2026-11-11 · Verified live</span></span></div>",
+      "css": ".ds-continuum-ruler { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 24px 12px; border-bottom: 1px solid var(--rule-strong, #3a4048); background: linear-gradient(90deg, #121518 0%, #1a1e23 50%, #121518 100%); font-family: var(--font-mono, 'Spline Sans Mono', monospace); font-size: 11px; font-variant-numeric: tabular-nums; color: var(--ink-secondary, #b9b4a8); } .ds-continuum-ruler::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background-image: linear-gradient(90deg, rgba(235, 232, 223, 0.14) 0 1px, transparent 1px); background-size: 28px 5px; background-repeat: repeat-x; pointer-events: none; } .ds-ruler-tick { display: inline-flex; align-items: center; gap: 8px; } .ds-tick-bar { display: inline-block; width: 1.5px; height: 15px; } .ds-tick-cyan { background-color: var(--emit-cyan, #4cc9f0); } .ds-tick-green { background-color: var(--emit-green, #5ec27e); } .ds-tick-sodium { width: 5px; height: 18px; background: linear-gradient(90deg, var(--emit-sodium, #ffcf48) 0 1.5px, transparent 1.5px 3.5px, var(--emit-sodium, #ffcf48) 3.5px 5px); }"
+    },
+    {
+      "name": "Emission Stamps",
+      "kind": "chip",
+      "description": "Unboxed optical emission stamps encoding temporal anchor offsets and live source verification state.",
+      "html": "<div class=\"ds-stamp-row\"><span class=\"ds-delta-stamp\">2026-11-09 · -2d</span><span class=\"ds-verified-stamp\">Verified live</span></div>",
+      "css": ".ds-stamp-row { display: inline-flex; align-items: center; gap: 16px; } .ds-delta-stamp { display: inline-flex; align-items: center; gap: 8px; color: var(--emit-sodium, #ffcf48); font-family: var(--font-mono, 'Spline Sans Mono', monospace); font-size: 11px; font-weight: 500; line-height: 16px; font-variant-numeric: tabular-nums; } .ds-delta-stamp::before { content: ''; display: inline-block; width: 5px; height: 14px; background: linear-gradient(90deg, var(--emit-sodium, #ffcf48) 0 1.5px, transparent 1.5px 3.5px, var(--emit-sodium, #ffcf48) 3.5px 5px); } .ds-verified-stamp { display: inline-flex; align-items: center; gap: 7px; color: var(--emit-green, #5ec27e); font-family: var(--font-mono, 'Spline Sans Mono', monospace); font-size: 11px; font-weight: 500; line-height: 16px; font-variant-numeric: tabular-nums; } .ds-verified-stamp::before { content: ''; display: inline-block; width: 1.5px; height: 14px; background-color: var(--emit-green, #5ec27e); }"
+    },
+    {
+      "name": "Differential Specimen Plate",
+      "kind": "card",
+      "refersTo": "plate-assistant",
+      "description": "Unrounded hairline-ruled assistant specimen plate containing header provenance stamps, baseline-vs-query ledger strip, and prose findings.",
+      "html": "<article class=\"ds-specimen-plate\"><div class=\"ds-plate-header\"><div class=\"ds-plate-left\"><span class=\"ds-plate-role\">DeltaCheck</span><span class=\"ds-delta-stamp-inline\">2026-11-09 · -2d</span></div><div class=\"ds-plate-right\"><span class=\"ds-verified-inline\">Verified live</span><span class=\"ds-plate-meta\">0.04s · 5 sources</span></div></div><div class=\"ds-ledger-strip\"><div class=\"ds-ledger-base\"><span class=\"ds-emit-sodium\"></span><span>Baseline: Shortlist 5 CRM tools for 20-person sales team (2026-11-09)</span></div><div class=\"ds-ledger-query\"><span class=\"ds-emit-cyan\"></span><span>HubSpot Sales Hub Pipedrive pricing update November 2026</span></div></div><p class=\"ds-plate-copy\">Base tier pricing remained unchanged since Monday; HubSpot shipped Breeze AI Copilot scoring.</p></article>",
+      "css": ".ds-specimen-plate { background-color: var(--bg-plate, #181b1e); border-top: 1px solid var(--rule-strong, #3a4048); border-bottom: 1px solid var(--rule-strong, #3a4048); padding: 22px 24px; display: flex; flex-direction: column; gap: 14px; color: var(--ink-bone, #ebe8df); font-family: var(--font-sans, 'Work Sans', sans-serif); } .ds-plate-header, .ds-plate-left, .ds-plate-right { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; } .ds-plate-role { font-size: 13px; font-weight: 600; color: var(--ink-bone, #ebe8df); } .ds-delta-stamp-inline { display: inline-flex; align-items: center; gap: 8px; color: var(--emit-sodium, #ffcf48); font-family: var(--font-mono, 'Spline Sans Mono', monospace); font-size: 11px; font-weight: 500; font-variant-numeric: tabular-nums; } .ds-delta-stamp-inline::before { content: ''; width: 5px; height: 14px; background: linear-gradient(90deg, var(--emit-sodium, #ffcf48) 0 1.5px, transparent 1.5px 3.5px, var(--emit-sodium, #ffcf48) 3.5px 5px); } .ds-verified-inline { display: inline-flex; align-items: center; gap: 7px; color: var(--emit-green, #5ec27e); font-family: var(--font-mono, 'Spline Sans Mono', monospace); font-size: 11px; font-weight: 500; } .ds-verified-inline::before { content: ''; width: 1.5px; height: 14px; background-color: var(--emit-green, #5ec27e); } .ds-plate-meta { font-family: var(--font-mono, 'Spline Sans Mono', monospace); font-size: 11px; font-variant-numeric: tabular-nums; color: var(--ink-muted, #989388); } .ds-ledger-strip { padding: 12px 0; border-top: 1px solid var(--rule-hairline, #282d33); border-bottom: 1px solid var(--rule-hairline, #282d33); display: flex; flex-direction: column; gap: 8px; } .ds-ledger-base { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-secondary, #b9b4a8); } .ds-ledger-query { display: flex; align-items: center; gap: 10px; font-family: var(--font-mono, 'Spline Sans Mono', monospace); font-size: 11px; color: var(--ink-secondary, #b9b4a8); } .ds-emit-sodium { width: 5px; height: 16px; flex-shrink: 0; background: linear-gradient(90deg, var(--emit-sodium, #ffcf48) 0 1.5px, transparent 1.5px 3.5px, var(--emit-sodium, #ffcf48) 3.5px 5px); } .ds-emit-cyan { width: 1.5px; height: 14px; flex-shrink: 0; background-color: var(--emit-cyan, #4cc9f0); } .ds-plate-copy { font-size: 14px; line-height: 22px; max-width: 74ch; margin: 0; }"
+    },
+    {
+      "name": "Inline Source Row",
+      "kind": "custom",
+      "description": "Hairline-separated citation row with 1.5px left tick shifting to cyan on hover.",
+      "html": "<a class=\"ds-source-item\" href=\"https://www.hubspot.com\" target=\"_blank\" rel=\"noopener noreferrer\"><span class=\"ds-source-title\">HubSpot Sales Hub - Official Pricing &amp; Feature Release Notes 2026</span><span class=\"ds-source-meta\">hubspot.com · 2026-11-09</span></a>",
+      "css": ".ds-source-item { position: relative; display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 10px 4px 10px 14px; border-bottom: 1px solid var(--rule-hairline, #282d33); background-color: transparent; text-decoration: none; color: var(--ink-bone, #ebe8df); font-family: var(--font-sans, 'Work Sans', sans-serif); transition: background-color 140ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)); } .ds-source-item::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 1.5px; background-color: var(--rule-strong, #3a4048); transition: background-color 140ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)); } .ds-source-item:hover { background-color: var(--bg-plate-active, #1d2227); } .ds-source-item:hover::before { background-color: var(--emit-cyan, #4cc9f0); } .ds-source-item:focus-visible { outline: 2px solid var(--emit-sodium, #ffcf48); outline-offset: 2px; } .ds-source-title { font-size: 13px; color: var(--ink-bone, #ebe8df); } .ds-source-meta { font-family: var(--font-mono, 'Spline Sans Mono', monospace); font-size: 11px; font-variant-numeric: tabular-nums; color: var(--ink-muted, #989388); white-space: nowrap; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Emission Line Continuum",
+    "overview": "DeltaCheck is built as an optical-spectroscopy verification instrument rather than a soft conversational messenger. Saved threads hang as calibrated cross-ticks along an off-centre vertical rail beside a dark specimen stream, where unboxed, hairline-ruled charcoal plates separate your questions from DeltaCheck's baseline-anchored verification findings.\n\nRather than decorating containers with drop shadows or rounded pills, meaning rides on narrow spectral emission lines against cool charcoal ash and warm bone typography. Doubled sodium-gold bars anchor historical dates and active baselines, single cyan lines mark live search queries and earliest continuum points, and single emerald lines confirm verified live responses.",
+    "keyCharacteristics": [
+      "Dark charcoal tonal layering (`#101214` to `#1d2227`) bounded by `1px` solid hairlines with zero drop shadows.",
+      "Strict spectral color coding: doubled `#ffcf48` sodium gold for temporal baselines and primary dispatch, `#4cc9f0` cyan for live search queries and links, `#5ec27e` emerald for verified live state.",
+      "Dual-voice typography pairing geometric `Work Sans` prose with `Spline Sans Mono` tabular dates, deltas, and query logs.",
+      "Unrounded (`0px`) full-bleed reading bands and ledger strips paired with sharp (`2px`) controls and framing surfaces."
+    ],
+    "rules": [
+      {
+        "name": "The Spectral Separation Rule",
+        "body": "Reserve doubled sodium gold (`#ffcf48`) strictly for temporal baselines, active thread selection, the primary `Dispatch` control, and keyboard focus; reserve cyan (`#4cc9f0`) for live search queries, earliest/idle continuum ticks, hyperlinks, and hover affordances; and reserve emerald (`#5ec27e`) strictly for verified live state.",
+        "section": "colors"
+      },
+      {
+        "name": "The High-Contrast Ash Ink Rule",
+        "body": "Render all text and structural rules from warm ash-bone inks (`#ebe8df`, `#b9b4a8`, `#989388`) and cool slate charcoals (`#101214`–`#3a4048`) rather than pure `#ffffff` white or uncalibrated neutral grays.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Telemetry Rule",
+        "body": "Apply `Spline Sans Mono` with `font-variant-numeric: tabular-nums` to every ISO date (`YYYY-MM-DD`), day offset (`-Nd`), counter, latency readout, continuum tick, and markdown table so numerical comparisons align vertically across turns.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-Plate Tonal Rule",
+        "body": "Never introduce `box-shadow`, elevation glows, or backdrop blur; establish hierarchy exclusively through stepped charcoal luminance and `1px` solid hairlines.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do encode semantic meaning through the three spectral emission lines (`#ffcf48` doubled sodium for temporal anchors/focus/dispatch, `#4cc9f0` cyan for live search queries/links, `#5ec27e` emerald for verified live state).",
+      "Do separate message plates, ledger strips, prompt suggestions, and source citations using full-bleed `0px`-radius bands bounded by `1px` hairlines (`#282d33` / `#3a4048`).",
+      "Do format every date, delta offset, count, latency, and table column in `Spline Sans Mono` with `font-variant-numeric: tabular-nums`.",
+      "Do pair `2px` sharp radii (`--radius-sharp`) across buttons, composer framing, keycaps, table wrappers, and modal surfaces, keeping hover/active feedback crisp at `140ms cubic-bezier(0.22, 1, 0.36, 1)`.",
+      "Do preserve `prefers-reduced-motion: reduce` overrides disabling row entrance animations and transitions."
+    ],
+    "donts": [
+      "Don't add `box-shadow`, outer glow halos, or `backdrop-filter` blur to plates, buttons, or modals (`The Flat-Plate Tonal Rule`).",
+      "Don't wrap message plates, baseline topics, or search queries in nested rounded cards or pill-shaped chips (`>=4px` / `999px` radii).",
+      "Don't substitute `#ffcf48` sodium gold onto secondary buttons or routine links, or mix cyan and emerald roles across status indicators.",
+      "Don't insert eyebrow/kicker labels above headings, decorative section numbers, or emoji/Unicode glyphs in place of authored `1.5px`-stroke SVGs.",
+      "Don't drop tabular numerals or let prose measures expand past `74ch` inside `.markdown-body`."
+    ]
+  }
+}

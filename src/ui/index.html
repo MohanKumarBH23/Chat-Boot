@@ -74,24 +74,24 @@
         </div>
       </header>
 
+      <div class="continuum-ruler" id="continuumRuler" aria-label="Temporal baseline continuum">
+        <span class="ruler-tick tick-cyan">
+          <span class="tick-bar" aria-hidden="true"></span>
+          <span id="rulerEarliest">-- · Baseline</span>
+        </span>
+        <span class="ruler-tick tick-sodium">
+          <span class="tick-bar doubled" aria-hidden="true"></span>
+          <span id="rulerAnchor">-- · Anchor</span>
+        </span>
+        <span class="ruler-tick tick-cyan" id="rulerLiveTick">
+          <span class="tick-bar" aria-hidden="true"></span>
+          <span id="rulerLive">-- · Live check</span>
+        </span>
+      </div>
+
       <div class="stream-scroll" id="messagesViewport">
         <div class="reading-column">
           <section class="empty-state" id="welcomeBanner">
-            <div class="continuum-ruler" aria-hidden="true">
-              <span class="ruler-tick tick-cyan">
-                <span class="tick-bar"></span>
-                <span>2026-11-03 · -8d</span>
-              </span>
-              <span class="ruler-tick tick-sodium">
-                <span class="tick-bar doubled"></span>
-                <span>2026-11-09 · -2d</span>
-              </span>
-              <span class="ruler-tick tick-green">
-                <span class="tick-bar"></span>
-                <span>Live check</span>
-              </span>
-            </div>
-
             <h2 class="empty-title">Verify what changed since a past thread</h2>
             <p class="empty-copy">
               Ask a question or anchor to a calendar date such as Monday or 3 November. DeltaCheck recalls the stored baseline turn and checks current web sources in parallel.
@@ -133,15 +133,11 @@
           <div class="composer-box">
             <textarea
               id="messageInput"
-              placeholder="Ask a question or reference a date"
+              placeholder="Ask or reference a date"
               rows="1"
               aria-label="Prompt"
             ></textarea>
-            <button type="submit" id="sendBtn" class="send-btn" title="Send" aria-label="Send prompt">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M12 19V5M5 12l7-7 7 7"></path>
-              </svg>
-            </button>
+            <button type="submit" id="sendBtn" class="send-btn" title="Dispatch check" aria-label="Dispatch check">Dispatch</button>
           </div>
           <div class="composer-meta">
             <span class="key-hint">

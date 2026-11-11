@@ -7,7 +7,7 @@
 
   --rule-hairline: #282d33;
   --rule-strong: #3a4048;
-  --rule-axis: #24292e;
+  --rule-axis: #363c44;
 
   --ink-bone: #ebe8df;
   --ink-secondary: #b9b4a8;
@@ -35,6 +35,10 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+[hidden] {
+  display: none !important;
 }
 
 ::selection {
@@ -187,9 +191,12 @@ textarea {
   flex: 1;
   overflow-y: auto;
   padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar-section {
+  flex: 1;
   display: flex;
   flex-direction: column;
 }
@@ -212,12 +219,13 @@ textarea {
   color: var(--ink-muted);
 }
 
-/* Off-centre calibrated vertical rail */
+/* Full-height off-centre calibrated vertical rail */
 .threads-list {
   position: relative;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   padding-left: 14px;
 }
 
@@ -225,8 +233,8 @@ textarea {
   content: '';
   position: absolute;
   left: 6px;
-  top: 6px;
-  bottom: 6px;
+  top: 0;
+  bottom: 0;
   width: 1px;
   background-color: var(--rule-axis);
 }
@@ -241,35 +249,34 @@ textarea {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   min-height: 44px;
-  padding: 8px 8px 8px 12px;
-  border-radius: var(--radius-sharp);
-  border: 1px solid transparent;
+  padding: 2px 4px 2px 0;
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid transparent;
   background-color: transparent;
   color: var(--ink-secondary);
-  cursor: pointer;
-  text-align: left;
   width: 100%;
   transition: background-color 140ms var(--ease), border-color 140ms var(--ease), color 140ms var(--ease);
 }
 
-/* Spectral axis tick indicator spanning the calibrated vertical rail */
+/* Spectral axis cross-tick spur anchored cleanly on the full-height rail */
 .thread-row::before {
   content: '';
   position: absolute;
-  left: -10px;
+  left: -8px;
   top: 50%;
   transform: translateY(-50%);
-  width: 4px;
+  width: 6px;
   height: 1px;
   background-color: var(--rule-strong);
-  transition: height 140ms var(--ease), background-color 140ms var(--ease);
+  transition: height 140ms var(--ease), width 140ms var(--ease), left 140ms var(--ease), background-color 140ms var(--ease);
 }
 
 .thread-row:hover {
   background-color: var(--bg-plate);
-  border-color: var(--rule-hairline);
+  border-top-color: var(--rule-hairline);
+  border-bottom-color: var(--rule-hairline);
   color: var(--ink-bone);
 }
 
@@ -282,21 +289,34 @@ textarea {
 
 .thread-row.active {
   background-color: var(--bg-plate-active);
-  border-color: var(--rule-strong);
+  border-top-color: var(--rule-strong);
+  border-bottom-color: var(--rule-strong);
   color: var(--ink-bone);
 }
 
 /* Doubled sodium yellow emission pair on the active rail node */
 .thread-row.active::before {
   width: 5px;
-  height: 24px;
-  left: -11px;
+  height: 26px;
+  left: -10px;
   background: linear-gradient(
     90deg,
     var(--emit-sodium) 0 1.5px,
     transparent 1.5px 3.5px,
     var(--emit-sodium) 3.5px 5px
   );
+}
+
+.thread-select-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 6px 6px 12px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
 }
 
 .thread-row-body {
@@ -311,6 +331,7 @@ textarea {
   font-size: 13px;
   font-weight: 500;
   line-height: 18px;
+  color: inherit;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -325,13 +346,13 @@ textarea {
 }
 
 .thread-row.active .thread-row-date {
-  color: var(--emit-cyan);
+  color: var(--ink-secondary);
 }
 
 .thread-del-btn {
-  opacity: 0;
-  width: 24px;
-  height: 24px;
+  opacity: 0.45;
+  width: 28px;
+  height: 28px;
   border: 1px solid transparent;
   border-radius: var(--radius-sharp);
   background: transparent;
@@ -345,7 +366,8 @@ textarea {
 }
 
 .thread-row:hover .thread-del-btn,
-.thread-row:focus-within .thread-del-btn {
+.thread-row:focus-within .thread-del-btn,
+.thread-row.active .thread-del-btn {
   opacity: 1;
 }
 
@@ -451,11 +473,7 @@ textarea {
 .delta-stamp {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 2px 8px;
-  border-radius: var(--radius-sharp);
-  border: 1px solid var(--emit-sodium-line);
-  background-color: var(--emit-sodium-bg);
+  gap: 8px;
   color: var(--emit-sodium);
   font-family: var(--font-mono);
   font-size: 11px;
@@ -463,6 +481,42 @@ textarea {
   line-height: 16px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.delta-stamp::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 14px;
+  flex-shrink: 0;
+  background: linear-gradient(
+    90deg,
+    var(--emit-sodium) 0 1.5px,
+    transparent 1.5px 3.5px,
+    var(--emit-sodium) 3.5px 5px
+  );
+}
+
+.verified-stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--emit-green);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.verified-stamp::before {
+  content: '';
+  display: inline-block;
+  width: 1.5px;
+  height: 14px;
+  flex-shrink: 0;
+  background-color: var(--emit-green);
 }
 
 .secondary-btn {
@@ -494,51 +548,65 @@ textarea {
 .stream-scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 32px 24px;
+  padding: 28px 28px 36px;
 }
 
 .reading-column {
-  max-width: 820px;
+  max-width: 900px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
 
-/* Horizontal Spectral Calibration Ruler */
+/* Persistent Workspace Spectral Calibration Ruler */
 .continuum-ruler {
   position: relative;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 16px 8px;
-  margin-bottom: 12px;
-  border: 1px solid var(--rule-hairline);
+  padding: 9px 24px 12px;
   border-bottom: 1px solid var(--rule-strong);
-  background: linear-gradient(90deg, #131619 0%, #1d2126 52%, #131619 100%);
+  background: linear-gradient(90deg, #121518 0%, #1a1e23 50%, #121518 100%);
   font-family: var(--font-mono);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   color: var(--ink-secondary);
+  flex-shrink: 0;
+}
+
+.continuum-ruler::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 5px;
+  background-image: linear-gradient(90deg, rgba(235, 232, 223, 0.14) 0 1px, transparent 1px);
+  background-size: 28px 5px;
+  background-repeat: repeat-x;
+  pointer-events: none;
 }
 
 .ruler-tick {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .tick-bar {
   display: inline-block;
   width: 1.5px;
-  height: 16px;
+  height: 15px;
   background-color: var(--emit-cyan);
+  flex-shrink: 0;
 }
 
 .tick-sodium .tick-bar.doubled {
   width: 5px;
-  height: 20px;
+  height: 18px;
   background: linear-gradient(
     90deg,
     var(--emit-sodium) 0 1.5px,
@@ -553,17 +621,17 @@ textarea {
 
 /* Empty state */
 .empty-state {
-  padding-top: 8px;
+  padding-top: 12px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .empty-title {
-  font-size: 26px;
+  font-size: 30px;
   font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
   color: var(--ink-bone);
 }
 
@@ -575,7 +643,7 @@ textarea {
 }
 
 .prompt-group {
-  margin-top: 16px;
+  margin-top: 18px;
 }
 
 .prompt-group .section-label {
@@ -586,7 +654,7 @@ textarea {
 .prompt-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  border-top: 1px solid var(--rule-hairline);
 }
 
 .prompt-row {
@@ -595,33 +663,32 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 12px 16px 12px 20px;
-  border-radius: var(--radius-sharp);
-  border: 1px solid var(--rule-hairline);
-  background-color: var(--bg-plate);
+  padding: 14px 4px 14px 16px;
+  border: none;
+  border-bottom: 1px solid var(--rule-hairline);
+  background-color: transparent;
   color: var(--ink-bone);
   font-size: 14px;
   line-height: 20px;
   text-align: left;
   cursor: pointer;
-  transition: background-color 140ms var(--ease), border-color 140ms var(--ease);
+  transition: background-color 140ms var(--ease);
 }
 
 .prompt-row::before {
   content: '';
   position: absolute;
-  left: 8px;
+  left: 0;
   top: 10px;
   bottom: 10px;
-  width: 1px;
+  width: 1.5px;
   background-color: var(--emit-cyan);
-  opacity: 0.7;
+  opacity: 0.72;
   transition: opacity 140ms var(--ease), background-color 140ms var(--ease);
 }
 
 .prompt-row:hover {
-  background-color: var(--bg-plate-active);
-  border-color: var(--rule-strong);
+  background-color: var(--bg-plate);
 }
 
 .prompt-row:hover::before {
@@ -634,11 +701,11 @@ textarea {
   min-width: 0;
 }
 
-/* Messages */
+/* Messages (unboxed hairline-ruled spectral specimen bands) */
 .messages-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 0;
 }
 
 @keyframes enterRow {
@@ -654,19 +721,25 @@ textarea {
 
 .message-card {
   position: relative;
-  border-radius: var(--radius-sharp);
-  border: 1px solid var(--rule-hairline);
-  background-color: var(--bg-plate);
-  padding: 20px 22px;
+  padding: 20px 0;
+  border-top: 1px solid var(--rule-hairline);
   display: flex;
   flex-direction: column;
   gap: 14px;
   animation: enterRow 180ms var(--ease) both;
 }
 
+.message-card.assistant {
+  background-color: var(--bg-plate);
+  border-top: 1px solid var(--rule-strong);
+  border-bottom: 1px solid var(--rule-strong);
+  padding: 22px 24px;
+}
+
 .message-card.user {
-  background-color: var(--bg-plate-alt);
-  border-color: var(--rule-hairline);
+  border-top: 1px solid var(--rule-hairline);
+  background-color: transparent;
+  padding: 16px 4px;
 }
 
 .message-header {
@@ -680,7 +753,7 @@ textarea {
 .message-role-group {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
@@ -690,6 +763,13 @@ textarea {
   color: var(--ink-bone);
 }
 
+.message-meta-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
 .message-meta {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -697,13 +777,11 @@ textarea {
   color: var(--ink-muted);
 }
 
-/* Differential Continuum Strip (ruled inline band inside the plate) */
+/* Differential Continuum Strip (hairline-ruled band inside plate, no nested boxes) */
 .ledger-strip {
-  margin: 0 -22px;
-  padding: 12px 22px;
+  padding: 12px 0;
   border-top: 1px solid var(--rule-hairline);
   border-bottom: 1px solid var(--rule-hairline);
-  background: linear-gradient(90deg, #131619 0%, #191d22 50%, #131619 100%);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -739,6 +817,7 @@ textarea {
 
 .emit-mark.live-cyan {
   width: 1.5px;
+  height: 14px;
   background: var(--emit-cyan);
 }
 
@@ -750,20 +829,23 @@ textarea {
 
 .ledger-queries {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.query-chip {
+.query-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-family: var(--font-mono);
   font-size: 11px;
   line-height: 16px;
   color: var(--ink-secondary);
-  background-color: var(--bg-plate);
-  border: 1px solid var(--rule-hairline);
-  border-radius: var(--radius-sharp);
-  padding: 3px 8px;
   overflow-wrap: anywhere;
+}
+
+.query-text {
+  min-width: 0;
 }
 
 /* Rendered markdown */
@@ -908,26 +990,40 @@ textarea {
   margin-top: 10px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  border-top: 1px solid var(--rule-hairline);
 }
 
 .source-item {
+  position: relative;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
-  padding: 9px 12px;
-  border-radius: var(--radius-sharp);
-  border: 1px solid var(--rule-hairline);
-  background-color: var(--bg-plate-alt);
+  gap: 16px;
+  padding: 10px 4px 10px 14px;
+  border-bottom: 1px solid var(--rule-hairline);
+  background-color: transparent;
   text-decoration: none;
   color: var(--ink-bone);
-  transition: border-color 140ms var(--ease), background-color 140ms var(--ease);
+  transition: background-color 140ms var(--ease);
+}
+
+.source-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 1.5px;
+  background-color: var(--rule-strong);
+  transition: background-color 140ms var(--ease);
 }
 
 .source-item:hover {
   background-color: var(--bg-plate-active);
-  border-color: var(--emit-cyan);
+}
+
+.source-item:hover::before {
+  background-color: var(--emit-cyan);
 }
 
 .source-item-title {
@@ -1026,12 +1122,16 @@ textarea {
 }
 
 .send-btn {
-  width: 32px;
   height: 32px;
+  padding: 0 14px;
   border-radius: var(--radius-sharp);
   border: none;
   background-color: var(--emit-sodium);
   color: var(--bg-continuum);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1141,10 +1241,17 @@ textarea {
   gap: 16px;
 }
 
-.modal-body .ledger-strip {
-  margin: 0;
-  padding: 14px;
-  border: 1px solid var(--rule-hairline);
+.inspector-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--rule-strong);
+}
+
+.inspector-turn:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 .inspector-snippet {
@@ -1163,9 +1270,21 @@ textarea {
   display: none;
 }
 
+@media (hover: none) {
+  .thread-del-btn {
+    opacity: 0.85;
+  }
+}
+
 @media (max-width: 768px) {
   .mobile-only {
     display: inline-flex;
+  }
+
+  .thread-del-btn {
+    opacity: 0.85;
+    width: 36px;
+    height: 36px;
   }
 
   .sidebar {
@@ -1204,16 +1323,17 @@ textarea {
   }
 
   .stream-scroll {
-    padding: 20px 16px;
+    padding: 20px 16px 28px;
   }
 
   .continuum-ruler {
+    padding: 8px 16px 11px;
     flex-wrap: wrap;
-    gap: 8px 14px;
+    gap: 6px 14px;
   }
 
   .empty-title {
-    font-size: 22px;
+    font-size: 24px;
   }
 
   .prompt-row {
@@ -1222,13 +1342,12 @@ textarea {
     gap: 8px;
   }
 
-  .message-card {
+  .message-card.assistant {
     padding: 16px;
   }
 
-  .ledger-strip {
-    margin: 0 -16px;
-    padding: 12px 16px;
+  .message-card.user {
+    padding: 14px 2px;
   }
 
   .source-item {
