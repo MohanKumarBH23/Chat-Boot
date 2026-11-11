@@ -1,41 +1,51 @@
 import OpenAI from 'openai';
+import { safeJsonParse } from '../../security/crypto.js';
+import { ValidationError } from '../../security/errors.js';
+import { sanitizeText } from '../../security/validation.js';
+import { MemoryStore } from '../../storage/memoryStore.js';
 import {
-  ISearchClient,
-  SearchResult,
-  RouterDecision,
   AgentResponse,
-  TemporalAnchor,
+  ISearchClient,
+  RouterDecision,
+  SearchResult,
   StreamEvent,
-} from './types.js';
-import { MemoryStore } from './memory.js';
-import { deduplicateResults } from './search.js';
+  TemporalAnchor,
+} from '../../types/index.js';
+import { deduplicateResults } from '../search/index.js';
+import { formatHumanDate, formatIsoDate, resolveTemporalAnchor } from './temporal.js';
 
-const WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 const GREETING_WORDS = new Set(['hi', 'hello', 'hey', 'thanks', 'thank you', 'bye']);
 
-export class SearchAgent {
-  private openai?: OpenAI;
-  private model: string;
-  private searchClient: ISearchClient;
-  private memory: MemoryStore;
-  private simulatedDate?: Date;
+export interface SearchAgentOptions {
+  searchClient: ISearchClient;
+  memoryStore: MemoryStore;
+  openaiApiKey?: string;
+  model?: string;
+  simulatedDate?: Date;
+}
 
-  constructor(options: {
-    searchClient: ISearchClient;
-    memoryStore: MemoryStore;
-    openaiApiKey?: string;
-    model?: string;
-    simulatedDate?: Date;
-  }) {
+/**
+ * Three-stage differential verification agent:
+ *   1) Temporal grounding & isolated memory recall
+ *   2) Concurrent web search fan-out & canonical deduplication
+ *   3) Baseline-vs-current synthesis with citations
+ */
+export class SearchAgent {
+  private readonly openai?: OpenAI;
+  private readonly model: string;
+  private readonly searchClient: ISearchClient;
+  private readonly memory: MemoryStore;
+  private readonly simulatedDate?: Date;
+
+  constructor(options: SearchAgentOptions) {
     this.searchClient = options.searchClient;
     this.memory = options.memoryStore;
-    this.model = options.model || process.env.OPENAI_MODEL || 'gpt-4o';
+    this.model = (options.model || 'gpt-4o').trim() || 'gpt-4o';
     this.simulatedDate = options.simulatedDate;
 
-    const apiKey = options.openaiApiKey ?? process.env.OPENAI_API_KEY;
-    if (apiKey && apiKey.trim().length > 0) {
-      this.openai = new OpenAI({ apiKey: apiKey.trim() });
+    const apiKey = (options.openaiApiKey || '').trim();
+    if (apiKey.length > 0) {
+      this.openai = new OpenAI({ apiKey });
     }
   }
 
@@ -56,145 +66,23 @@ export class SearchAgent {
   }
 
   formatIsoDate(date: Date): string {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return formatIsoDate(date);
   }
 
   formatHumanDate(date: Date): string {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+    return formatHumanDate(date);
   }
 
-  /**
-   * Resolves the current clock and any explicit or relative past date mentioned in the prompt.
-   */
   getTemporalAnchor(userMessage: string): TemporalAnchor {
-    const now = this.simulatedDate ? new Date(this.simulatedDate) : new Date();
-    const currentDayIdx = now.getDay();
-    const currentDayOfWeek =
-      WEEKDAYS[currentDayIdx].charAt(0).toUpperCase() + WEEKDAYS[currentDayIdx].slice(1);
-
-    const currentIsoTimestamp = now.toISOString();
-    const currentDateIso = this.formatIsoDate(now);
-    const currentFormatted = this.formatHumanDate(now);
-
-    const resolved = this.resolveRelativeDate(userMessage, now, currentDayIdx);
-    if (!resolved) {
-      return {
-        currentIsoTimestamp,
-        currentDateIso,
-        currentDayOfWeek,
-        currentFormatted,
-      };
-    }
-
-    const referenceDateIso = this.formatIsoDate(resolved.date);
-    const referenceFormatted = this.formatHumanDate(resolved.date);
-    const d1 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const d2 = new Date(resolved.date.getFullYear(), resolved.date.getMonth(), resolved.date.getDate());
-    const deltaDays = Math.max(0, Math.round((d1.getTime() - d2.getTime()) / (1000 * 60 * 60 * 24)));
-
-    return {
-      currentIsoTimestamp,
-      currentDateIso,
-      currentDayOfWeek,
-      currentFormatted,
-      referenceDateIso,
-      referenceFormatted,
-      relativeDescription: resolved.description,
-      deltaDays,
-    };
-  }
-
-  private resolveRelativeDate(
-    userMessage: string,
-    now: Date,
-    currentDayIdx: number
-  ): { date: Date; description: string } | null {
-    const lower = userMessage.toLowerCase();
-
-    const dateRegex =
-      /(?:(\d{1,2})(?:st|nd|rd|th)?\s+(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)(?:\s+(\d{4}))?)|(?:(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?)/i;
-    const dateMatch = lower.match(dateRegex);
-
-    if (dateMatch) {
-      const dayNum = parseInt(dateMatch[1] || dateMatch[5], 10);
-      const monthAbbr = (dateMatch[2] || dateMatch[4]).toLowerCase().slice(0, 3);
-      const explicitYear = dateMatch[3] || dateMatch[6];
-      const monthIdx = MONTHS.indexOf(monthAbbr);
-
-      if (monthIdx !== -1 && dayNum >= 1 && dayNum <= 31) {
-        const year = explicitYear ? parseInt(explicitYear, 10) : now.getFullYear();
-        let candidate = new Date(year, monthIdx, dayNum);
-        if (!explicitYear && candidate.getTime() > now.getTime()) {
-          candidate = new Date(year - 1, monthIdx, dayNum);
-        }
-        const capMonth = monthAbbr.charAt(0).toUpperCase() + monthAbbr.slice(1);
-        return { date: candidate, description: `${dayNum} ${capMonth}` };
-      }
-    }
-
-    if (/\btoday\b/.test(lower)) {
-      return { date: new Date(now), description: 'today' };
-    }
-
-    if (/\byesterday\b/.test(lower)) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - 1);
-      return { date, description: 'yesterday' };
-    }
-
-    const agoMatch = lower.match(/\b(\d+)\s+(day|days|week|weeks)\s+ago\b/);
-    if (agoMatch) {
-      const amount = parseInt(agoMatch[1], 10);
-      const days = agoMatch[2].startsWith('week') ? amount * 7 : amount;
-      const date = new Date(now);
-      date.setDate(date.getDate() - days);
-      return { date, description: `${amount} ${agoMatch[2]} ago` };
-    }
-
-    const weekdayMatches = Array.from(
-      lower.matchAll(/\b(last\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/g)
-    );
-    if (weekdayMatches.length > 0) {
-      // Prefer explicit "last <weekday>" phrasing when multiple weekdays appear in one sentence.
-      const chosen = weekdayMatches.find((m) => Boolean(m[1])) || weekdayMatches[0];
-      const isExplicitLast = Boolean(chosen[1]);
-      const dayName = chosen[2];
-      const targetDayIdx = WEEKDAYS.indexOf(dayName);
-
-      let diff = currentDayIdx - targetDayIdx;
-      if (diff <= 0) {
-        diff += 7;
-      } else if (isExplicitLast) {
-        diff += 7;
-      }
-
-      const date = new Date(now);
-      date.setDate(date.getDate() - diff);
-      const capDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
-      const shortDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      return {
-        date,
-        description: `${isExplicitLast ? 'last ' : ''}${capDay} (${shortDate})`,
-      };
-    }
-
-    return null;
+    return resolveTemporalAnchor(userMessage, this.simulatedDate);
   }
 
   /**
-   * Stage 1: Resolve temporal context, query episodic memory, and plan targeted search queries.
+   * Stage 1: Resolve temporal context, recall tenant-owned baseline memory, and plan targeted search queries.
    */
-  async stage1Route(userMessage: string, conversationId?: string): Promise<RouterDecision> {
+  async stage1Route(userMessage: string, conversationId?: string, ownerId?: string): Promise<RouterDecision> {
     const temporalAnchor = this.getTemporalAnchor(userMessage);
-    const activeConv = conversationId ? this.memory.getConversation(conversationId) : undefined;
+    const activeConv = conversationId ? this.memory.getConversation(conversationId, ownerId) : undefined;
     const recentMessages = activeConv ? activeConv.messages.slice(-6) : [];
     const sessionHistory =
       recentMessages.length > 0
@@ -206,7 +94,8 @@ export class SearchAgent {
     const match = this.memory.findTurnByDateOrEntity(
       userMessage,
       temporalAnchor.referenceDateIso,
-      conversationId
+      conversationId,
+      ownerId
     );
     let historicalBaseline = '';
     let historicalUserPrompt: string | undefined;
@@ -288,30 +177,48 @@ Return ONLY valid JSON:
           ],
         });
 
-        const parsed = JSON.parse(completion.choices[0]?.message?.content || '{}');
-        const searchQueries = Array.isArray(parsed.searchQueries) ? parsed.searchQueries.slice(0, 3) : [];
+        const parsed = safeJsonParse<Record<string, unknown>>(
+          completion.choices[0]?.message?.content || '{}'
+        );
+        const searchQueries = Array.isArray(parsed.searchQueries)
+          ? parsed.searchQueries
+              .filter((q): q is string => typeof q === 'string')
+              .map((q) => sanitizeText(q, 240))
+              .filter(Boolean)
+              .slice(0, 3)
+          : [];
+        const parsedEntities = Array.isArray(parsed.resolvedEntities)
+          ? parsed.resolvedEntities
+              .filter((e): e is string => typeof e === 'string')
+              .map((e) => sanitizeText(e, 100))
+              .filter(Boolean)
+          : [];
         const requiresSearch = Boolean(parsed.requiresSearch ?? true);
         return {
-          temporalContext: parsed.temporalContext || defaultTemporalContext,
+          temporalContext:
+            typeof parsed.temporalContext === 'string'
+              ? sanitizeText(parsed.temporalContext, 400)
+              : defaultTemporalContext,
           historicalTopicFound:
-            parsed.historicalTopicFound !== undefined ? parsed.historicalTopicFound : defaultHistoricalTopic,
+            parsed.historicalTopicFound !== undefined
+              ? typeof parsed.historicalTopicFound === 'string'
+                ? sanitizeText(parsed.historicalTopicFound, 200)
+                : null
+              : defaultHistoricalTopic,
           requiresSearch,
           searchQueries: requiresSearch && searchQueries.length === 0 ? [userMessage] : searchQueries,
           temporalAnchor,
-          resolvedEntities:
-            Array.isArray(parsed.resolvedEntities) && parsed.resolvedEntities.length > 0
-              ? parsed.resolvedEntities
-              : resolvedEntities,
+          resolvedEntities: parsedEntities.length > 0 ? parsedEntities : resolvedEntities,
           historicalBaseline: historicalBaseline || undefined,
           historicalUserPrompt,
           sessionHistory: sessionHistory || undefined,
         };
       } catch (err) {
-        console.warn('[Stage1Route] OpenAI router unavailable, using heuristic router:', (err as Error).message);
+        const status = (err as { status?: number })?.status;
+        console.warn(`[Stage1Route] OpenAI router unavailable${status ? ` (HTTP ${status})` : ''}, using heuristic router.`);
       }
     }
 
-    // Heuristic offline router built strictly from MemoryStore recall and session context.
     const lower = userMessage.toLowerCase().trim();
     const requiresSearch = !GREETING_WORDS.has(lower.replace(/[.!?]+$/, ''));
     const searchQueries = requiresSearch
@@ -372,7 +279,7 @@ Return ONLY valid JSON:
   }
 
   /**
-   * Stage 2: Execute search queries concurrently and deduplicate canonical URLs.
+   * Stage 2: Execute planned search queries concurrently and deduplicate canonical URLs.
    */
   async stage2Search(queries: string[]): Promise<SearchResult[]> {
     if (queries.length === 0) return [];
@@ -439,7 +346,8 @@ STRICT OUTPUT CONTRACT:
 
         return (completion.choices[0]?.message?.content || '').trim();
       } catch (err) {
-        console.warn('[Stage3Synthesize] OpenAI synthesis unavailable, using heuristic synthesis:', (err as Error).message);
+        const status = (err as { status?: number })?.status;
+        console.warn(`[Stage3Synthesize] OpenAI synthesis unavailable${status ? ` (HTTP ${status})` : ''}, using heuristic synthesis.`);
       }
     }
 
@@ -465,13 +373,14 @@ STRICT OUTPUT CONTRACT:
         return `On ${anchor.referenceDateIso || 'that date'}, you asked: "${historicalUserPrompt}". No web search sources were returned in offline mode (${this.searchClient.name}) to verify whether details changed today.`;
       }
       if (decision.historicalTopicFound) {
-        return `Found prior thread "${decision.historicalTopicFound}", but ${this.searchClient.name} returned no sources for "${userMessage}". Configure TAVILY_API_KEY or BRAVE_API_KEY in .env for live web verification.`;
+        return `Found prior thread "${decision.historicalTopicFound}", but no search results were returned for your query. Contact an administrator to enable a live web search provider if external verification is needed.`;
       }
-      return `No search results were returned for "${userMessage}" using the ${this.searchClient.name} client. Configure TAVILY_API_KEY or BRAVE_API_KEY in .env to run live web queries.`;
+      return `No search results were returned for your query (${this.searchClient.name} client). Contact an administrator to configure a live web search provider if external verification is needed.`;
     }
 
     const lines: string[] = [];
-    const entitySummary = resolvedEntities.length > 0 ? resolvedEntities.join(', ') : decision.historicalTopicFound || userMessage;
+    const entitySummary =
+      resolvedEntities.length > 0 ? resolvedEntities.join(', ') : decision.historicalTopicFound || userMessage;
 
     if (historicalUserPrompt && isAskingWhatWasAsked) {
       lines.push(
@@ -502,47 +411,67 @@ STRICT OUTPUT CONTRACT:
     content: string,
     decision: RouterDecision,
     sources: SearchResult[],
-    latencyMs: number
+    latencyMs: number,
+    ownerId?: string
   ): void {
     const nowIso = new Date().toISOString();
-    this.memory.addMessage(conversationId, {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: userMessage,
-      timestamp: nowIso,
-    });
-
-    this.memory.addMessage(conversationId, {
-      id: `asst-${Date.now() + 1}`,
-      role: 'assistant',
-      content,
-      timestamp: new Date().toISOString(),
-      sources,
-      queries: decision.searchQueries,
-      latencyMs,
-      metadata: {
-        entities: decision.resolvedEntities,
-        temporalAnchor: decision.temporalAnchor.currentDateIso,
-        referenceDateIso: decision.temporalAnchor.referenceDateIso,
-        relativeDescription: decision.temporalAnchor.relativeDescription,
-        deltaDays: decision.temporalAnchor.deltaDays,
-        historicalTopicFound: decision.historicalTopicFound,
+    this.memory.addMessage(
+      conversationId,
+      {
+        id: `user-${Date.now()}`,
+        role: 'user',
+        content: userMessage,
+        timestamp: nowIso,
       },
-    });
+      false,
+      ownerId
+    );
+
+    this.memory.addMessage(
+      conversationId,
+      {
+        id: `asst-${Date.now() + 1}`,
+        role: 'assistant',
+        content,
+        timestamp: new Date().toISOString(),
+        sources,
+        queries: decision.searchQueries,
+        latencyMs,
+        metadata: {
+          entities: decision.resolvedEntities,
+          temporalAnchor: decision.temporalAnchor.currentDateIso,
+          referenceDateIso: decision.temporalAnchor.referenceDateIso,
+          relativeDescription: decision.temporalAnchor.relativeDescription,
+          deltaDays: decision.temporalAnchor.deltaDays,
+          historicalTopicFound: decision.historicalTopicFound,
+        },
+      },
+      false,
+      ownerId
+    );
   }
 
-  async process(userMessage: string, conversationId = 'default-cli-session'): Promise<AgentResponse> {
-    return this.processWithEvents(userMessage, conversationId);
+  async process(
+    userMessage: string,
+    conversationId = 'default-cli-session',
+    ownerId?: string
+  ): Promise<AgentResponse> {
+    return this.processWithEvents(userMessage, conversationId, undefined, ownerId);
   }
 
   async processWithEvents(
     userMessage: string,
     conversationId = 'default-cli-session',
-    onEvent?: (event: StreamEvent) => void
+    onEvent?: (event: StreamEvent) => void,
+    ownerId?: string
   ): Promise<AgentResponse> {
-    const startTime = Date.now();
+    const cleanUserMessage = sanitizeText(userMessage, 4000, true);
+    if (!cleanUserMessage) {
+      throw new ValidationError('Message content is required');
+    }
 
-    const decision = await this.stage1Route(userMessage, conversationId);
+    const startTime = Date.now();
+    const decision = await this.stage1Route(cleanUserMessage, conversationId, ownerId);
     onEvent?.({ type: 'stage', stage: 'route', decision });
 
     let sources: SearchResult[] = [];
@@ -551,10 +480,10 @@ STRICT OUTPUT CONTRACT:
     }
     onEvent?.({ type: 'stage', stage: 'search', queries: decision.searchQueries, sources });
 
-    const content = await this.stage3Synthesize(userMessage, decision, sources);
+    const content = await this.stage3Synthesize(cleanUserMessage, decision, sources);
     const latencyMs = Date.now() - startTime;
 
-    this.recordTurn(conversationId, userMessage, content, decision, sources, latencyMs);
+    this.recordTurn(conversationId, cleanUserMessage, content, decision, sources, latencyMs, ownerId);
 
     const response: AgentResponse = {
       content,
@@ -564,7 +493,7 @@ STRICT OUTPUT CONTRACT:
       routerDecision: decision,
     };
 
-    const conv = this.memory.getConversation(conversationId);
+    const conv = this.memory.getConversation(conversationId, ownerId);
     if (conv && onEvent) {
       onEvent({ type: 'done', response, conversation: conv });
     }
@@ -572,3 +501,4 @@ STRICT OUTPUT CONTRACT:
     return response;
   }
 }
+

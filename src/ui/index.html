@@ -44,7 +44,7 @@
       <div class="sidebar-footer">
         <div class="status-row">
           <span class="status-dot" id="statusDot" aria-hidden="true"></span>
-          <span class="status-text" id="telemetryText">Connecting</span>
+          <span class="status-text" id="telemetryText">Sign in required</span>
         </div>
         <span class="clock-meta" id="sidebarClock">--</span>
       </div>
@@ -63,6 +63,9 @@
           <span class="date-stamp" id="currentDateBadge">--</span>
         </div>
         <div class="topbar-actions">
+          <button class="secondary-btn" id="adminBtn" type="button" hidden>
+            <span>Admin</span>
+          </button>
           <button class="secondary-btn" id="viewSourcesBtn" type="button">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="11" cy="11" r="7"></circle>
@@ -70,6 +73,9 @@
             </svg>
             <span>Sources</span>
             <span class="count-meta" id="sourcesCountBadge">0</span>
+          </button>
+          <button class="secondary-btn" id="logoutBtn" type="button" hidden>
+            <span>Sign out</span>
           </button>
         </div>
       </header>
@@ -91,6 +97,11 @@
 
       <div class="stream-scroll" id="messagesViewport">
         <div class="reading-column">
+          <div class="status-banner" id="errorBanner" role="alert" hidden>
+            <span class="status-banner-text" id="errorBannerText"></span>
+            <button class="status-banner-dismiss" id="errorBannerDismiss" type="button" aria-label="Dismiss error">Dismiss</button>
+          </div>
+
           <section class="empty-state" id="welcomeBanner">
             <h2 class="empty-title">Verify what changed since a past thread</h2>
             <p class="empty-copy">
@@ -135,6 +146,7 @@
               id="messageInput"
               placeholder="Ask or reference a date"
               rows="1"
+              maxlength="4000"
               aria-label="Prompt"
             ></textarea>
             <button type="submit" id="sendBtn" class="send-btn" title="Dispatch check" aria-label="Dispatch check">Dispatch</button>
@@ -145,13 +157,14 @@
               <span class="meta-sep">·</span>
               <kbd class="keycap">Shift</kbd> <kbd class="keycap">Enter</kbd> new line
             </span>
-            <span class="tool-meta" id="composerToolLabel">Web search</span>
+            <span class="tool-meta" id="composerToolLabel">Isolated workspace</span>
           </div>
         </form>
       </footer>
     </main>
   </div>
 
+  <!-- Sources Inspector Modal -->
   <div class="modal-backdrop" id="inspectorModal" hidden role="dialog" aria-modal="true" aria-labelledby="inspectorTitle">
     <div class="modal-panel">
       <div class="modal-header">
@@ -168,6 +181,90 @@
     </div>
   </div>
 
-  <script src="/app.js"></script>
+  <!-- Admin Diagnostics & User Management Modal -->
+  <div class="modal-backdrop" id="adminModal" hidden role="dialog" aria-modal="true" aria-labelledby="adminModalTitle">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h2 class="modal-title" id="adminModalTitle">Administration &amp; environment status</h2>
+        <button class="icon-btn" id="closeAdminBtn" type="button" aria-label="Close administration panel">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+            <path d="M18 6L6 18M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="admin-toolbar">
+        <button class="secondary-btn" id="adminSeedBtn" type="button">Seed starter threads</button>
+        <button class="secondary-btn" id="adminRefreshBtn" type="button">Refresh</button>
+      </div>
+      <div class="modal-body" id="adminContent">
+        <p class="empty-inspector">Loading system diagnostics...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Authentication & Initial Setup Gate -->
+  <div class="auth-gate" id="authGate" hidden role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <div class="auth-plate">
+      <div class="auth-brand">
+        <svg class="brand-mark" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <rect x="2" y="2" width="14" height="14" rx="1.5" stroke="currentColor" stroke-width="1.5"></rect>
+          <line x1="6.5" y1="5" x2="6.5" y2="13" stroke="#ffcf48" stroke-width="1.5"></line>
+          <line x1="11.5" y1="5" x2="11.5" y2="13" stroke="#4cc9f0" stroke-width="1.5"></line>
+        </svg>
+        <span class="brand-name">DeltaCheck</span>
+      </div>
+
+      <div class="auth-header">
+        <h2 class="auth-title" id="authTitle">Sign in</h2>
+        <p class="auth-subtitle" id="authSubtitle">Authenticate to access your private research baseline threads.</p>
+      </div>
+
+      <form id="authForm" class="auth-form" novalidate>
+        <div class="auth-field">
+          <label class="auth-label" for="authUsername">Username</label>
+          <input
+            class="auth-input"
+            id="authUsername"
+            name="username"
+            type="text"
+            autocomplete="username"
+            required
+            minlength="3"
+            maxlength="32"
+            placeholder="researcher_handle"
+          />
+        </div>
+
+        <div class="auth-field">
+          <label class="auth-label" for="authPassword">Password</label>
+          <input
+            class="auth-input"
+            id="authPassword"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+            minlength="10"
+            maxlength="128"
+            placeholder="At least 10 characters"
+          />
+          <p class="auth-hint" id="authHint" hidden>Use 10+ characters mixing letters and numbers or symbols.</p>
+        </div>
+
+        <div class="auth-error" id="authError" role="alert" hidden></div>
+
+        <div class="auth-actions">
+          <button class="send-btn auth-submit" id="authSubmitBtn" type="submit">Sign in</button>
+        </div>
+      </form>
+
+      <div class="auth-switch" id="authSwitchRow" hidden>
+        <span id="authSwitchText">Need an account?</span>
+        <button class="link-btn" id="authToggleBtn" type="button">Create account</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
 </body>
 </html>

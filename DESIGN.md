@@ -270,11 +270,11 @@ Conversational search tools struggle on follow-up questions that anchor to past 
 
 ### Design Choices
 
-#### Three-Stage Pipeline (`src/agent.ts`)
+#### Three-Stage Pipeline (`src/services/agent/searchAgent.ts`, `src/services/agent/temporal.ts`)
 
 Instead of an unbounded tool-calling loop, each turn executes at most two LLM calls (routing and synthesis) with one concurrent search fan-out between them:
 
-- **Stage 1 (`stage1Route`)**: Computes the current date and resolves relative phrases (`Monday`, `last Tuesday`, `3 November`, `2 days ago`) in deterministic TypeScript before any LLM call. Queries `MemoryStore` for matching prior turns and generates 1–3 targeted queries. Greetings skip Stage 2.
+- **Stage 1 (`stage1Route`)**: Computes the current date and resolves relative phrases (`Monday`, `last Tuesday`, `3 November`, `2 days ago`) in deterministic TypeScript before any LLM call. Queries `MemoryStore` scoped to the authenticated owner for matching prior turns and generates 1–3 targeted queries. Greetings skip Stage 2.
 - **Stage 2 (`stage2Search`)**: Dispatches queries concurrently via `Promise.all` and deduplicates results by canonical URL (`utm_*`, `ref`, `source`, `fbclid`, fragment, and trailing slash stripped).
 - **Stage 3 (`stage3Synthesize`)**: Receives the recalled prior exchange alongside deduplicated search results and contrasts baseline facts against retrieved snippets. When running offline without an API key, `MockSearchClient` returns empty results for unknown topics rather than synthetic placeholder URLs.
 
@@ -282,17 +282,17 @@ Instead of an unbounded tool-calling loop, each turn executes at most two LLM ca
 
 #### Calendar Arithmetic Outside the LLM
 
-Date resolution in `SearchAgent.getTemporalAnchor` runs in code using word-boundary regexes and `Date` arithmetic. When multiple weekdays appear in one sentence, explicit `last <weekday>` expressions take priority over bare weekday names so phrases like "Last Tuesday I compared Monday's rates" resolve cleanly.
+Date resolution in `resolveTemporalAnchor` (`SearchAgent.getTemporalAnchor`) runs in code using word-boundary regexes and `Date` arithmetic. When multiple weekdays appear in one sentence, explicit `last <weekday>` expressions take priority over bare weekday names so phrases like "Last Tuesday I compared Monday's rates" resolve cleanly.
 
-#### JSON Episodic Memory (`src/memory.ts`)
+#### JSON Episodic Memory (`src/storage/memoryStore.ts`, `src/storage/jsonPersistence.ts`)
 
-Conversations are stored as paired user/assistant turns in `./data/agent_memory.json` with extracted entity metadata:
+Conversations are stored as paired user/assistant turns in `./data/agent_memory.json` with extracted entity metadata, `0o600` file permissions, and optional AES-256-GCM encryption at rest:
 
-- When a reference date (`YYYY-MM-DD`) is resolved, `findTurnByDateOrEntity` collects all turns matching that date and ranks them by token overlap with the prompt, breaking ties by most recent timestamp.
-- Writes go through a temporary file (`agent_memory.json.tmp`) followed by `fs.renameSync` to avoid corrupting the store on interrupted writes.
+- When a reference date (`YYYY-MM-DD`) is resolved, `findTurnByDateOrEntity` filters strictly to the caller's `ownerId` slice, collects turns matching that date, and ranks them by token overlap with the prompt, breaking ties by most recent timestamp.
+- Writes share an atomic temporary-file helper (`writeJsonAtomic` via `.tmp` + `fs.renameSync`) to avoid corrupting stores on interrupted writes.
 
-**Trade-off**: Loading the conversation map into memory keeps lookups fast for personal history sizes (hundreds to a few thousand turns). Scaling to multi-user or large archives would require SQLite or a dedicated database.
+**Trade-off**: Loading the conversation map into memory keeps lookups fast for personal history sizes (hundreds to a few thousand turns). Scaling to larger multi-tenant workloads would require SQLite or a dedicated database.
 
-#### Web Server & UI (`src/server.ts`, `src/ui/`)
+#### Web Server & Modular Frontend (`src/api/`, `src/ui/`)
 
-The web server uses Node's built-in `node:http` module to serve the zero-build static frontend (`src/ui/index.html`, `src/ui/style.css`, `src/ui/app.js`) and stream Stage 1 / Stage 2 progress over Server-Sent Events (`POST /api/conversations/:id/messages`), keeping runtime dependencies limited to `dotenv` and `openai`.
+The backend separates centralized environment configuration (`src/config/env.ts`), security primitives and typed `AppError` classes (`src/security/`), and route modules (`src/api/routes/`) over Node's built-in `node:http` server (`src/api/server.ts`, supporting both `/api/*` and `/api/v1/*`). On the client, `src/ui/` remains zero-build under strict Content-Security-Policy headers using native ES modules (`src/ui/js/main.js`, centralized `store.js` state management, `apiClient.js` transport, and isolated components) paired with split CSS layers (`src/ui/styles/`), streaming Stage 1 / Stage 2 progress over Server-Sent Events (`POST /api/v1/conversations/:id/messages`) with runtime dependencies limited to `dotenv` and `openai`.

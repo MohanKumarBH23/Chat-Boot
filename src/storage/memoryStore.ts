@@ -1,6 +1,11 @@
-import fs from 'fs';
-import path from 'path';
-import { Conversation, ChatMessage, MemoryMatch } from './types.js';
+import { AuthorizationError } from '../security/errors.js';
+import { resolveSafeStoragePath } from '../security/validation.js';
+import { ChatMessage, Conversation, MemoryMatch } from '../types/index.js';
+import {
+  ensurePrivateDirectory,
+  readEncryptedJsonFile,
+  writeEncryptedJsonFile,
+} from './jsonPersistence.js';
 
 const STOPWORDS = new Set([
   'what', 'when', 'where', 'which', 'who', 'whom', 'this', 'that', 'these', 'those',
@@ -38,80 +43,101 @@ function scoreMessageMatch(conv: Conversation, msg: ChatMessage, tokens: string[
 }
 
 /**
- * JSON-backed conversation store with date and entity recall.
+ * Persistent conversation and episodic memory repository with tenant ownership isolation
+ * and optional AES-256-GCM encryption at rest.
  */
 export class MemoryStore {
   public readonly filePath: string;
   private readonly persist: boolean;
+  private readonly encryptionKey: Buffer | null;
   private conversations: Map<string, Conversation> = new Map();
 
-  constructor(customPath?: string, persist = true) {
-    this.filePath = customPath || process.env.STORAGE_PATH || './data/agent_memory.json';
+  constructor(
+    customPath = './data/agent_memory.json',
+    persist = true,
+    encryptionKey: Buffer | null = null
+  ) {
+    this.filePath = resolveSafeStoragePath(customPath);
     this.persist = persist;
+    this.encryptionKey = encryptionKey;
     if (this.persist) {
-      const dir = path.dirname(this.filePath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
+      ensurePrivateDirectory(this.filePath);
     }
     this.load();
   }
 
   load(): void {
-    if (!fs.existsSync(this.filePath)) return;
-    try {
-      const raw = fs.readFileSync(this.filePath, 'utf-8');
-      const list: Conversation[] = JSON.parse(raw);
-      this.conversations.clear();
-      for (const c of list) {
-        this.conversations.set(c.id, c);
+    const parsed = readEncryptedJsonFile<unknown>(this.filePath, this.encryptionKey);
+    if (!parsed) return;
+
+    if (!Array.isArray(parsed)) {
+      console.warn('[MemoryStore] Memory file payload is not an array, ignoring.');
+      return;
+    }
+
+    this.conversations.clear();
+    for (const c of parsed) {
+      if (c && typeof c === 'object' && typeof (c as Conversation).id === 'string') {
+        const conv = c as Conversation;
+        this.conversations.set(conv.id, conv);
       }
-    } catch (err) {
-      console.warn('[MemoryStore] Failed to parse memory file, initializing empty store:', (err as Error).message);
     }
   }
 
-  /**
-   * Writes state via a temporary file and rename to avoid partial writes on crash.
-   */
   save(): void {
     if (!this.persist) return;
-    const tmpPath = `${this.filePath}.tmp`;
-    try {
-      const list = Array.from(this.conversations.values());
-      fs.writeFileSync(tmpPath, JSON.stringify(list, null, 2), 'utf-8');
-      fs.renameSync(tmpPath, this.filePath);
-    } catch (err) {
-      if (fs.existsSync(tmpPath)) {
-        try {
-          fs.unlinkSync(tmpPath);
-        } catch {
-          // ignore cleanup failure
-        }
-      }
-      console.error('[MemoryStore] Failed to write memory file:', (err as Error).message);
+    const list = Array.from(this.conversations.values());
+    writeEncryptedJsonFile(this.filePath, list, this.encryptionKey);
+  }
+
+  listConversations(ownerId?: string): Conversation[] {
+    return Array.from(this.conversations.values())
+      .filter((c) => ownerId === undefined || c.ownerId === ownerId)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }
+
+  getConversationCount(ownerId?: string): number {
+    if (ownerId === undefined) return this.conversations.size;
+    let count = 0;
+    for (const c of this.conversations.values()) {
+      if (c.ownerId === ownerId) count += 1;
     }
+    return count;
   }
 
-  listConversations(): Conversation[] {
-    return Array.from(this.conversations.values()).sort(
-      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    );
+  getTotalMessageCount(): number {
+    let total = 0;
+    for (const c of this.conversations.values()) {
+      total += c.messages.length;
+    }
+    return total;
   }
 
-  getConversation(id: string): Conversation | undefined {
-    return this.conversations.get(id);
+  getConversation(id: string, ownerId?: string): Conversation | undefined {
+    const conv = this.conversations.get(id);
+    if (!conv) return undefined;
+    if (ownerId !== undefined && conv.ownerId !== ownerId) {
+      return undefined;
+    }
+    return conv;
   }
 
   createConversation(
     id: string,
     title: string,
     scenario?: string,
-    timestamps?: { createdAt?: string; updatedAt?: string }
+    timestamps?: { createdAt?: string; updatedAt?: string },
+    ownerId?: string
   ): Conversation {
+    const existing = this.conversations.get(id);
+    if (existing && ownerId !== undefined && existing.ownerId !== ownerId) {
+      throw new AuthorizationError('Access denied for this conversation ID');
+    }
+
     const now = new Date().toISOString();
     const conv: Conversation = {
       id,
+      ...(ownerId !== undefined ? { ownerId } : {}),
       title,
       createdAt: timestamps?.createdAt || now,
       updatedAt: timestamps?.updatedAt || timestamps?.createdAt || now,
@@ -123,7 +149,12 @@ export class MemoryStore {
     return conv;
   }
 
-  deleteConversation(id: string): boolean {
+  deleteConversation(id: string, ownerId?: string): boolean {
+    const existing = this.conversations.get(id);
+    if (!existing) return false;
+    if (ownerId !== undefined && existing.ownerId !== ownerId) {
+      return false;
+    }
     const deleted = this.conversations.delete(id);
     if (deleted) {
       this.save();
@@ -131,12 +162,34 @@ export class MemoryStore {
     return deleted;
   }
 
-  addMessage(conversationId: string, message: ChatMessage, preserveUpdatedAt = false): void {
+  deleteConversationsByOwner(ownerId: string): number {
+    let count = 0;
+    for (const [id, conv] of this.conversations.entries()) {
+      if (conv.ownerId === ownerId) {
+        this.conversations.delete(id);
+        count += 1;
+      }
+    }
+    if (count > 0) {
+      this.save();
+    }
+    return count;
+  }
+
+  addMessage(
+    conversationId: string,
+    message: ChatMessage,
+    preserveUpdatedAt = false,
+    ownerId?: string
+  ): void {
     let conv = this.conversations.get(conversationId);
+    if (conv && ownerId !== undefined && conv.ownerId !== ownerId) {
+      throw new AuthorizationError('Access denied to conversation');
+    }
     if (!conv) {
       const initialTitle =
         message.role === 'user' ? MemoryStore.summarizeTitle(message.content) : 'New thread';
-      conv = this.createConversation(conversationId, initialTitle);
+      conv = this.createConversation(conversationId, initialTitle, undefined, undefined, ownerId);
     } else if (
       (conv.title === 'New thread' || conv.title === 'Conversation') &&
       message.role === 'user' &&
@@ -185,15 +238,18 @@ export class MemoryStore {
 
   /**
    * Finds the most relevant prior turn matching a calendar date (when given)
-   * or token overlap across conversation content, entities, and titles.
+   * or token overlap across conversations accessible to ownerId.
    */
   findTurnByDateOrEntity(
     query: string,
     targetDateIso?: string,
-    excludeConversationId?: string
+    excludeConversationId?: string,
+    ownerId?: string
   ): MemoryMatch | null {
     const allConvs = Array.from(this.conversations.values()).filter(
-      (c) => !excludeConversationId || c.id !== excludeConversationId
+      (c) =>
+        (!excludeConversationId || c.id !== excludeConversationId) &&
+        (ownerId === undefined || c.ownerId === ownerId)
     );
     const tokens = tokenizeQuery(query);
 
@@ -227,7 +283,6 @@ export class MemoryStore {
         const msg = conv.messages[i];
         const score = scoreMessageMatch(conv, msg, tokens);
         const timestamp = new Date(msg.timestamp).getTime();
-        // Without an explicit date anchor, require at least 2 points (e.g. a title/entity hit or two body matches).
         if (
           score >= 2 &&
           (!bestMatch || score > bestMatch.score || (score === bestMatch.score && timestamp > bestMatch.timestamp))
@@ -240,9 +295,6 @@ export class MemoryStore {
     return bestMatch ? bestMatch.match : null;
   }
 
-  /**
-   * Populates the store if empty while preserving original conversation timestamps.
-   */
   ensureSeeded(seedFn: () => Conversation[]): boolean {
     if (this.conversations.size > 0) return false;
     for (const conv of seedFn()) {
@@ -252,3 +304,4 @@ export class MemoryStore {
     return true;
   }
 }
+

@@ -4,20 +4,20 @@
   "description": "Web search and episodic memory chat agent with deterministic date resolution",
   "type": "module",
   "scripts": {
-    "dev": "tsx src/server.ts",
-    "start": "tsx src/server.ts",
-    "cli": "tsx src/index.ts",
-    "seed": "tsx src/seed.ts",
+    "dev": "tsx src/api/server.ts",
+    "start": "tsx src/api/server.ts",
+    "cli": "tsx src/cli/index.ts",
+    "seed": "tsx src/storage/seed.ts",
     "build": "tsc",
-    "test": "tsx --test test/*.test.ts"
+    "test": "tsx --test test/unit/*.test.ts test/integration/*.test.ts"
   },
   "dependencies": {
-    "dotenv": "^16.4.7",
-    "openai": "^4.86.1"
+    "dotenv": "^18.0.10",
+    "openai": "^7.55.0"
   },
   "devDependencies": {
-    "@types/node": "^22.13.5",
-    "tsx": "^4.19.3",
-    "typescript": "^5.7.3"
+    "@types/node": "^24.19.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
   }
 }

@@ -1,0 +1,109 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+::selection {
+  background-color: rgba(255, 207, 72, 0.28);
+  color: var(--ink-bone);
+}
+
+html,
+body {
+  height: 100%;
+  background-color: var(--bg-continuum);
+  color: var(--ink-bone);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  caret-color: var(--emit-sodium);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+textarea {
+  font-family: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--emit-sodium);
+  outline-offset: 2px;
+}
+
+/* Custom thin dark scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-continuum);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--rule-hairline);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--rule-strong);
+}
+
+.app-shell {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, rgba(16, 18, 20, 0.96) 0%, rgba(28, 32, 36, 0.35) 68%, rgba(16, 18, 20, 0.96) 100%),
+    var(--bg-continuum);
+}
+
+/* Dismissible workspace error / warning plate */
+.status-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid rgba(240, 113, 103, 0.45);
+  border-left: 2px solid var(--emit-red);
+  border-radius: var(--radius-sharp);
+  background-color: rgba(240, 113, 103, 0.1);
+  color: var(--ink-bone);
+  font-size: 13px;
+  line-height: 19px;
+}
+
+.status-banner-text {
+  min-width: 0;
+  color: var(--emit-red);
+  overflow-wrap: anywhere;
+}
+
+.status-banner-dismiss {
+  flex-shrink: 0;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--radius-sharp);
+  border: 1px solid rgba(240, 113, 103, 0.4);
+  background-color: transparent;
+  color: var(--ink-bone);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background-color 140ms var(--ease), border-color 140ms var(--ease);
+}
+
+.status-banner-dismiss:hover {
+  background-color: rgba(240, 113, 103, 0.16);
+  border-color: var(--emit-red);
+}
+

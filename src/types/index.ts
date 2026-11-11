@@ -1,6 +1,10 @@
 /**
- * Core type contracts for DeltaCheck.
+ * Shared domain and transport TypeScript contracts for DeltaCheck.
  */
+
+export type SearchProviderName = 'tavily' | 'brave' | 'mock';
+
+export type EnvPresenceSummary = Record<string, 'SET' | 'EMPTY'>;
 
 export interface SearchResult {
   title: string;
@@ -36,8 +40,34 @@ export interface ChatMessage {
   };
 }
 
+export type UserRole = 'user' | 'admin';
+
+export interface UserRecord {
+  id: string;
+  username: string;
+  role: UserRole;
+  passwordHash: string;
+  createdAt: string;
+}
+
+export interface PublicUser {
+  id: string;
+  username: string;
+  role: UserRole;
+  createdAt: string;
+}
+
+export interface SessionRecord {
+  tokenHash: string;
+  userId: string;
+  csrfToken: string;
+  createdAt: number;
+  expiresAt: number;
+}
+
 export interface Conversation {
   id: string;
+  ownerId?: string;
   title: string;
   createdAt: string;
   updatedAt: string;
@@ -91,3 +121,4 @@ export type StreamEvent =
   | { type: 'stage'; stage: 'search'; queries: string[]; sources: SearchResult[] }
   | { type: 'done'; response: AgentResponse; conversation: Conversation }
   | { type: 'error'; message: string };
+

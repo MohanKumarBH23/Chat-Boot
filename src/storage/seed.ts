@@ -1,6 +1,7 @@
-import 'dotenv/config';
-import { MemoryStore } from './memory.js';
-import { Conversation } from './types.js';
+import crypto from 'node:crypto';
+import { loadAppConfig } from '../config/env.js';
+import { Conversation } from '../types/index.js';
+import { MemoryStore } from './memoryStore.js';
 
 export function getBenchmarkSeedData(): Conversation[] {
   const mondayCrmConv: Conversation = {
@@ -94,21 +95,45 @@ export function getBenchmarkSeedData(): Conversation[] {
   return [mondayCrmConv, nov3PostgresConv];
 }
 
-export function seedDataset(customStore?: MemoryStore, logOutput = true): boolean {
-  const store = customStore ?? new MemoryStore();
-  const seeded = store.ensureSeeded(getBenchmarkSeedData);
+export function seedDataset(customStore: MemoryStore, logOutput = true): boolean {
+  const seeded = customStore.ensureSeeded(getBenchmarkSeedData);
   if (seeded && logOutput) {
-    console.log(`[Seed] Seeded ${getBenchmarkSeedData().length} conversations into ${store.filePath}`);
+    console.log(`[Seed] Seeded ${getBenchmarkSeedData().length} conversations into ${customStore.filePath}`);
   }
   return seeded;
 }
 
-if (process.argv[1]?.endsWith('seed.ts') || process.argv[1]?.endsWith('seed.js')) {
-  runSeed();
+/**
+ * Seeds isolated benchmark starter threads scoped strictly to an authenticated ownerId.
+ */
+export function seedUserStarterConversations(store: MemoryStore, ownerId: string): number {
+  if (store.listConversations(ownerId).length > 0) return 0;
+
+  const ownerTag = crypto.createHash('sha256').update(ownerId).digest('hex').slice(0, 8);
+  let added = 0;
+
+  for (const tpl of getBenchmarkSeedData()) {
+    const scopedId = `${tpl.id}-${ownerTag}`;
+    if (store.getConversation(scopedId, ownerId)) continue;
+    store.createConversation(
+      scopedId,
+      tpl.title,
+      tpl.scenario,
+      { createdAt: tpl.createdAt, updatedAt: tpl.updatedAt },
+      ownerId
+    );
+    for (const msg of tpl.messages) {
+      store.addMessage(scopedId, { ...msg, id: `${msg.id}-${ownerTag}` }, true, ownerId);
+    }
+    added += 1;
+  }
+
+  return added;
 }
 
 export function runSeed(customPath?: string): void {
-  const store = new MemoryStore(customPath);
+  const config = loadAppConfig({ storagePath: customPath });
+  const store = new MemoryStore(config.storagePath, true, config.storageEncryptionKey);
   let added = 0;
   for (const conv of getBenchmarkSeedData()) {
     if (!store.getConversation(conv.id)) {
@@ -124,3 +149,11 @@ export function runSeed(customPath?: string): void {
   }
   console.log(`[Seed] Seeded ${added} conversation(s) into ${store.filePath}`);
 }
+
+const isEntrypoint =
+  process.argv[1]?.endsWith('seed.ts') || process.argv[1]?.endsWith('seed.js');
+
+if (isEntrypoint) {
+  runSeed();
+}
+

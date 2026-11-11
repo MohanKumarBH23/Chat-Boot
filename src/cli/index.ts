@@ -1,10 +1,12 @@
-import 'dotenv/config';
-import * as readline from 'node:readline/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { stdin as input, stdout as output } from 'node:process';
-import { createSearchClient } from './search.js';
-import { MemoryStore } from './memory.js';
-import { SearchAgent } from './agent.js';
-import { seedDataset } from './seed.js';
+import * as readline from 'node:readline/promises';
+import { loadAppConfig } from '../config/env.js';
+import { SearchAgent } from '../services/agent/searchAgent.js';
+import { createSearchClient } from '../services/search/index.js';
+import { MemoryStore } from '../storage/memoryStore.js';
+import { seedDataset } from '../storage/seed.js';
 
 const ansi = {
   reset: '\x1b[0m',
@@ -22,7 +24,7 @@ async function runEvaluationDryRun(memoryStore: MemoryStore): Promise<boolean> {
   console.log('\nDeltaCheck evaluation dry-run (simulated clock: 2026-11-11)\n');
 
   const agent = new SearchAgent({
-    searchClient: createSearchClient('mock'),
+    searchClient: createSearchClient({ provider: 'mock' }),
     memoryStore,
     simulatedDate: new Date('2026-11-11T12:00:00.000Z'),
   });
@@ -60,7 +62,9 @@ async function runEvaluationDryRun(memoryStore: MemoryStore): Promise<boolean> {
       : 'none';
 
     console.log(`[${i + 1}/${cases.length}] ${item.name}`);
-    console.log(`${ansi.dim}  ref ${refTag} | ${res.queries.length} queries | ${res.sources.length} sources | ${formatSeconds(res.latencyMs)}${ansi.reset}`);
+    console.log(
+      `${ansi.dim}  ref ${refTag} | ${res.queries.length} queries | ${res.sources.length} sources | ${formatSeconds(res.latencyMs)}${ansi.reset}`
+    );
     console.log(`${res.content}\n`);
 
     const noFiller =
@@ -88,18 +92,29 @@ async function runEvaluationDryRun(memoryStore: MemoryStore): Promise<boolean> {
 
 async function main() {
   const isEvalMode = process.argv.includes('--eval') || process.argv.includes('--test');
-  const memoryStore = new MemoryStore();
-  seedDataset(memoryStore, false);
-
   if (isEvalMode) {
-    const dryRunStore = new MemoryStore('./data/agent_memory.json', false);
+    const dryRunStore = new MemoryStore(path.join(os.tmpdir(), 'deltacheck-eval-dryrun-memory.json'), false);
     seedDataset(dryRunStore, false);
     const ok = await runEvaluationDryRun(dryRunStore);
     process.exit(ok ? 0 : 1);
   }
 
-  const searchClient = createSearchClient();
-  const agent = new SearchAgent({ searchClient, memoryStore });
+  const config = loadAppConfig();
+  const memoryStore = new MemoryStore(config.storagePath, true, config.storageEncryptionKey);
+  seedDataset(memoryStore, false);
+
+  const searchClient = createSearchClient({
+    provider: config.searchProvider,
+    tavilyApiKey: config.tavilyApiKey,
+    braveApiKey: config.braveApiKey,
+  });
+
+  const agent = new SearchAgent({
+    searchClient,
+    memoryStore,
+    openaiApiKey: config.openaiApiKey,
+    model: config.openaiModel,
+  });
   const now = new Date();
 
   console.log(`\n${ansi.bold}DeltaCheck${ansi.reset} ${ansi.dim}(${agent.formatIsoDate(now)} · ${searchClient.name} · ${agent.modelName})${ansi.reset}`);
@@ -154,6 +169,7 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error('Fatal error:', err);
+  console.error('Fatal error:', err instanceof Error ? err.message : 'Unexpected failure');
   process.exit(1);
 });
+
